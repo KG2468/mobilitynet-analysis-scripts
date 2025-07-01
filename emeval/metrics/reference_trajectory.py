@@ -1,6 +1,7 @@
 import scipy.interpolate as sci
 import geopandas as gpd
 import shapely as shp
+import numpy as np
 import random as random
 import math
 import arrow
@@ -9,6 +10,38 @@ import functools
 
 import emeval.metrics.dist_calculations as emd
 import emeval.input.spec_details as eisd
+import emeval.metrics.DTW as dtw
+
+def interpolate_points_along_linestring(linestring, time_interval, points_per_second=1.0):
+    """
+    Interpolate points along a linestring at regular intervals
+    
+    Args:
+        linestring (shapely.geometry.LineString): Input linestring
+        time_interval (float): Time interval between interpolated points in seconds
+        points_per_second (float): Number of points per second
+    Returns:
+        list: List of shapely.Point objects which contains both the original points from the linestring
+        and the interpolated points at regular intervals, ensuring there at minimum points_per_second
+        points per second while also maintaining all the detail from the original linestring
+    """
+    lat = linestring.coords[0][1]
+    points = [shp.geometry.Point(coord[0] / math.cos(math.radians(lat)), coord[1]) for coord in list(linestring.coords)]
+    # points = [shp.geometry.Point(coord[0], coord[1]) for coord in list(linestring.coords)]
+    adjusted_linestring = shp.geometry.LineString(points)
+    current_distance = 0.0
+    total_length = adjusted_linestring.length
+    interval = total_length / (points_per_second * time_interval)
+    
+    while current_distance < total_length:
+        # Get point at current distance along the linestring
+        point = adjusted_linestring.interpolate(current_distance)
+        points.append(point)
+        current_distance += interval
+    points.sort(key=lambda p: adjusted_linestring.line_locate_point(p))
+    # unadjusted_points = points
+    unadjusted_points = [shp.geometry.Point(point.x * math.cos(math.radians(lat)), point.y) for point in points]
+    return unadjusted_points
 
 random.seed(1)
 
@@ -40,6 +73,15 @@ def to_gpdf(location_df):
             lambda lr: shp.geometry.Point(lr.longitude, lr.latitude), axis=1))
 
 def get_int_aligned_trajectory(location_df, tz="UTC"):
+    #check size of location_df
+    if len(location_df) == 0:
+        return gpd.GeoDataFrame({
+            "ts": [],
+            "fmt_time": [],
+            "longitude": [],
+            "latitude": [],
+            "geometry": []
+        })
     lat_fn = sci.interp1d(x=location_df.ts, y=location_df.latitude)
     lon_fn = sci.interp1d(x=location_df.ts, y=location_df.longitude)
     # In order to avoid extrapolation, we use ceil for the first int and floor
@@ -204,7 +246,7 @@ def collapse_outer_join_dist_so_far(loc_row, more_details_fn = None):
     else:
         assert not pd.isnull(loc_row.geometry_i) and not pd.isnull(loc_row.geometry_a)
         choice_series = gpd.GeoSeries([loc_row.geometry_a, loc_row.geometry_i])
-        gt_projection_line_series = gpd.GeoSeries([loc_row.gt_projection_a, loc_row.gt_projection_i])
+        gt_projection_line_series = pd.Series([loc_row.gt_projection_a, loc_row.gt_projection_i])
         if more_details:
             print("gt_projection_line = %s" % gt_projection_line_series)
         distance_from_last_series = gt_projection_line_series.apply(lambda d: d - distance_so_far)
@@ -224,7 +266,7 @@ def collapse_outer_join_dist_so_far(loc_row, more_details_fn = None):
                     print("one distance is going backwards, found closer_idx = %d" % closer_idx)
 
             else:
-                distance_from_gt_series = gpd.GeoSeries([loc_row.gt_distance_a, loc_row.gt_distance_i])
+                distance_from_gt_series = pd.Series([loc_row.gt_distance_a, loc_row.gt_distance_i])
                 if more_details:
                     print("distance_from_gt_series = %s" % distance_from_gt_series)
                 closer_idx = distance_from_gt_series.idxmin()
@@ -249,8 +291,8 @@ def collapse_outer_join_dist_so_far(loc_row, more_details_fn = None):
     if final_geom == EMPTY_POINT:
         return {
             "ts": loc_row.ts,
-            "longitude": pd.np.nan,
-            "latitude": pd.np.nan,
+            "longitude": np.nan,
+            "latitude": np.nan,
             "geometry": EMPTY_POINT,
             "source": source
         }
@@ -262,6 +304,49 @@ def collapse_outer_join_dist_so_far(loc_row, more_details_fn = None):
             "geometry": final_geom,
             "source": source
         }
+
+def group_points(mapping, options=-1):
+    """
+    Options: -1, 0, 1, 
+    -1 for group for either element in each pair
+    0 for group for only first element in each pair
+    1 for group for only second element in each pair
+    """
+    groups = []
+    current_group = [mapping[0]]
+    current_dom = -1
+    
+    for pair in mapping[1:]:
+        last = current_group[-1]
+        # if the first element matches OR the second element matches, add to the current group
+        if current_dom == -1:
+            if pair[0] == last[0]:
+                current_group.append(pair)
+                current_dom = 0
+            elif pair[1] == last[1]:
+                current_group.append(pair)
+                current_dom = 1
+            else:
+                groups.append(current_group)
+                current_group = [pair]
+                current_dom = -1
+        elif current_dom == 0:
+            if pair[0] == last[0]:
+                current_group.append(pair)
+            else:
+                groups.append(current_group)
+                current_group = [pair]
+                current_dom = -1
+        elif current_dom == 1:
+            if pair[1] == last[1]:
+                current_group.append(pair)
+            else:
+                groups.append(current_group)
+                current_group = [pair]
+                current_dom = -1
+    
+    groups.append(current_group)
+    return groups
 
 ####
 # END: MERGE
@@ -304,6 +389,57 @@ def ref_ct_general(e, b_merge_fn, dist_threshold, tz="UTC"):
         return initial_reference_gpdf
     else:
         return gpd.GeoDataFrame()
+    
+def ref_dtw_no_gt_with_ends_general(e, tz="UTC"):
+    fill_gt_linestring(e)
+    # print("In ref_ct_general, %s" % section_gt_shapes.filter(items=["start_loc","end_loc"]))
+    a_pts = emd.to_geo_df(e["temporal_control"]["android"]["location_df"])
+    i_pts = emd.to_geo_df(e["temporal_control"]["ios"]["location_df"])
+    a_pts_seq = a_pts["geometry"].to_list()
+    i_pts_seq = i_pts["geometry"].to_list()
+
+    d = dtw.Dtw(a_pts_seq, i_pts_seq, dtw.calDistance)
+    d.calculate()
+    mapping = d.get_path()
+
+    groups = group_points(mapping)
+
+    print("After DTW, retained %d of %d (%s)" %
+          (len(groups), max(len(a_pts), len(i_pts)),
+            (len(groups)/max(len(a_pts), len(i_pts)))))
+    #Average the postions and time stampsof each unique element in each group
+
+    points = []
+    timestamps = []
+    for group in groups:
+        #Get unique elements
+        unique_elements_a = set()
+        unique_elements_i = set()
+        for pair in group:
+            unique_elements_a.add(pair[0])
+            unique_elements_i.add(pair[1])
+        a_df = a_pts.iloc[list(unique_elements_a)]
+        i_df = i_pts.iloc[list(unique_elements_i)]
+        centroid = shp.geometry.MultiPoint(a_df["geometry"].to_list() + i_df["geometry"].to_list()).centroid
+        ts = np.mean(a_df["ts"].to_list() + i_df["ts"].to_list())
+        # Store points and timestamps in lists
+        points.append(centroid)
+        timestamps.append(ts)
+        #Average the postions and time stamps
+    
+    # Create DataFrame from collected points and timestamps
+    if len(points) == 0:
+        return gpd.GeoDataFrame()
+    
+    gpdf = gpd.GeoDataFrame(
+        data={'ts': timestamps},
+        geometry=points
+    )
+    gpdf['longitude'] = gpdf.geometry.x
+    gpdf['latitude'] = gpdf.geometry.y
+    gpdf["fmt_time"] = gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
+    assert len(gpdf[gpdf.geometry.isnull()]) == 0, "Found %d null entries out of %d total" % (len(gpdf.geometry.isnull()), len(gpdf))
+    return gpdf 
 
 def ref_gt_general(e, b_merge_fn, dist_threshold, tz="UTC"):
     fill_gt_linestring(e)
@@ -348,6 +484,192 @@ def ref_gt_general(e, b_merge_fn, dist_threshold, tz="UTC"):
         return initial_reference_gpdf
     else:
         return gpd.GeoDataFrame()
+    
+def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2):
+    fill_gt_linestring(e)
+    a_pts = emd.to_geo_df(e["temporal_control"]["android"]["location_df"])
+    i_pts = emd.to_geo_df(e["temporal_control"]["ios"]["location_df"])
+    if interp >= 1:
+        new_a_pts = get_int_aligned_trajectory(a_pts, tz)
+        new_i_pts = get_int_aligned_trajectory(i_pts, tz)
+    else:
+        new_a_pts = a_pts
+        new_i_pts = i_pts
+    a_pts_seq = new_a_pts["geometry"].to_list()
+    i_pts_seq = new_i_pts["geometry"].to_list()
+
+    start_ts = min(new_a_pts["ts"].iloc[0], new_i_pts["ts"].iloc[0])
+    end_ts = max(new_a_pts["ts"].iloc[-1], new_i_pts["ts"].iloc[-1])
+
+
+    # Get points at 1-meter intervals along the ground truth linestring
+    if interp == 0 or interp == 2:
+        gt_pts = interpolate_points_along_linestring(e["ground_truth"]["linestring"], time_interval=(end_ts-start_ts), points_per_second=points_per_second)
+    else:
+        gt_pts = [shp.geometry.Point(coord) for coord in list(e["ground_truth"]["linestring"].coords)]
+    
+    # print("In ref_ct_general, %s" % section_gt_shapes.filter(items=["start_loc","end_loc"]))
+    
+    d_a = dtw.Dtw(gt_pts, a_pts_seq, dtw.calDistance)
+    d_a.calculate()
+    mapping_a = d_a.get_path()
+
+    d_i = dtw.Dtw(gt_pts, i_pts_seq, dtw.calDistance)
+    d_i.calculate()
+    mapping_i = d_i.get_path()
+
+    groups_a = []
+    a_idx = len(mapping_a) - 1   
+    groups_i = []
+    i_idx = len(mapping_i) - 1
+    for idx in range(len(gt_pts)):
+        group_a = []
+        group_i = []
+        while a_idx >= 0 and mapping_a[a_idx][0] == idx:
+            group_a.append(mapping_a[a_idx][1])
+            a_idx -= 1
+        while i_idx >= 0 and mapping_i[i_idx][0] == idx:
+            group_i.append(mapping_i[i_idx][1])
+            i_idx -= 1
+        groups_a.append(group_a)
+        groups_i.append(group_i)
+    
+    # print("After DTW, retained %d of %d (%s) for android and %d of %d (%s) for ios" %
+    #       (len(groups_a), max(len(a_pts), len(i_pts)),
+    #         (len(groups_a)/max(len(a_pts), len(i_pts))),
+    #         len(groups_i), max(len(a_pts), len(i_pts)),
+    #         (len(groups_i)/max(len(a_pts), len(i_pts)))))
+    #Average the postions and time stampsof each unique element in each group
+
+    
+    def get_centriod_and_ts(idx, timeseries_id):
+        if timeseries_id == 0:
+            centroid_a, ts_a = get_centriod_and_ts(idx, 1)
+            centroid_i, ts_i = get_centriod_and_ts(idx, 2)
+            return shp.geometry.MultiPoint([centroid_a, centroid_i]).centroid, (ts_a + ts_i)/2
+        if timeseries_id == 1:
+            groups = groups_a
+            pts = new_a_pts
+        elif timeseries_id == 2:
+            groups = groups_i
+            pts = new_i_pts
+
+        unique_elements = set()
+        for pt in groups[idx]:
+            unique_elements.add(pt)
+        df = pts.iloc[list(unique_elements)]
+        matched_points = df["geometry"].to_list()
+        matched_ts = df["ts"].to_list()
+        matched_ts_mean = np.mean(matched_ts)
+        matched_points_centroid = shp.geometry.MultiPoint(matched_points).centroid
+        return matched_points_centroid, matched_ts_mean
+
+    points = []
+    timestamps = []
+    ranges = []
+    offset = 0
+    timeseries_id = 0 # 0 for dtw, 1 for android, 2 for ios
+    for idx in range(len(gt_pts)):
+        #Get unique elements
+        matched_points_centroid_a, matched_ts_mean_a = get_centriod_and_ts(idx, 1)
+        matched_points_centroid_i, matched_ts_mean_i = get_centriod_and_ts(idx, 2)
+
+        #Outlier removal
+        # ranges.append(max(matched_ts_a + matched_ts_i)-min(matched_ts_a + matched_ts_i))
+        # if len(matched_points) == 2:
+        if abs(matched_ts_mean_a - matched_ts_mean_i) > 300:
+            if dtw.calDistance(gt_pts[idx], matched_points_centroid_a) > dtw.calDistance(gt_pts[idx], matched_points_centroid_i):
+                # points.append(matched_points_i_centroid)
+                if timeseries_id != 2:
+                    burn, prev_new = get_centriod_and_ts(idx-1, 2)
+                    burn, prev_old = get_centriod_and_ts(idx-1, timeseries_id)
+                    offset += prev_old - prev_new
+                    timeseries_id = 2
+
+                points.append(gt_pts[idx])
+                timestamps.append(matched_ts_mean_i + offset)
+                continue
+            else:
+                # points.append(matched_points_a_centroid)
+                if timeseries_id != 1:
+                    burn, prev_new = get_centriod_and_ts(idx-1, 1)
+                    burn, prev_old = get_centriod_and_ts(idx-1, timeseries_id)
+                    offset += prev_old - prev_new
+                    timeseries_id = 1
+                points.append(gt_pts[idx])
+                timestamps.append(matched_ts_mean_a + offset)
+                continue
+        # if len(matched_points) > 2:
+        #     first = np.percentile(matched_ts, 25)
+        #     third = np.percentile(matched_ts, 75)
+        #     iqr = third - first
+        #     outliers = [pt for pt in matched_ts if pt < (first - iqr) or pt > (third + iqr)]
+        #     for pt in outliers:
+        #         matched_points.remove(matched_points[matched_ts.index(pt)])
+        #         matched_ts.remove(pt)
+            
+            
+        
+
+        #Average remaining points
+        if timeseries_id != 0:
+            burn, prev_new = get_centriod_and_ts(idx-1, 0)
+            burn, prev_old = get_centriod_and_ts(idx-1, timeseries_id)
+            offset += prev_old - prev_new
+            timeseries_id = 0
+        # centroid = shp.geometry.MultiPoint([matched_points_centroid_a, matched_points_centroid_i]).centroid
+        ts = (matched_ts_mean_a + matched_ts_mean_i) / 2
+        # points.append(centroid)
+        points.append(gt_pts[idx])
+        timestamps.append(ts + offset)
+        #Average the postions and time stamps
+    # print(np.histogram(ranges, bins=10))
+    
+    # Create DataFrame from collected points and timestamps
+    if len(points) == 0:
+        return gpd.GeoDataFrame()
+
+    gpdf = gpd.GeoDataFrame(
+        data={'ts': timestamps},
+        # data={"ts": ts_fake},
+        geometry=points
+        # geometry=gt_pts
+    )
+
+    speed_acceleration_jerk(gpdf)
+    
+    gpdf['longitude'] = gpdf.geometry.x
+    gpdf['latitude'] = gpdf.geometry.y
+    gpdf["fmt_time"] = gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
+    assert len(gpdf[gpdf.geometry.isnull()]) == 0, "Found %d null entries out of %d total" % (len(gpdf.geometry.isnull()), len(gpdf))
+    return gpdf
+
+def speed_acceleration_jerk(gpdf):
+    skip = 0
+    speed = []
+    acceleration = []
+    jerk = []
+    for idx in range(1, len(gpdf)):
+        dist = dtw.calDistance(gpdf.iloc[idx].geometry, gpdf.iloc[idx-1].geometry)
+        speed.append(dist / (gpdf.iloc[idx].ts - gpdf.iloc[idx-1].ts))
+        if skip > 0:
+            acceleration.append((speed[idx-1] - speed[idx-2]) / (gpdf.iloc[idx-1].ts - gpdf.iloc[idx-2].ts))
+            if skip > 1:
+                jerk.append((acceleration[idx-2] - acceleration[idx-3]) / (gpdf.iloc[idx-2].ts - gpdf.iloc[idx-3].ts))
+            else:
+                skip += 1
+        else:
+            skip += 1
+    speed.append(0)
+    acceleration.append((speed[-1] - speed[-2]) / (gpdf.iloc[-1].ts - gpdf.iloc[-2].ts))
+    acceleration.append(0)
+    jerk.append((acceleration[-2] - acceleration[-3]) / (gpdf.iloc[-2].ts - gpdf.iloc[-3].ts))
+    jerk.append((acceleration[-1] - acceleration[-2]) / (gpdf.iloc[-1].ts - gpdf.iloc[-2].ts))
+    jerk.append(0)
+    gpdf["speed"] = speed
+    gpdf["acceleration"] = acceleration
+    gpdf["jerk"] = jerk
+
 
 def ref_travel_forward(e, dist_threshold, tz="UTC"):
     # This function needs a global variable
@@ -390,6 +712,7 @@ def ref_travel_forward(e, dist_threshold, tz="UTC"):
         how="outer", suffixes=("_a", "_i")).sort_values(by="ts", axis="index")
     merge_fn = functools.partial(collapse_outer_join_dist_so_far, more_details_fn = None)
     initial_reference_gpdf = gpd.GeoDataFrame(list(merged_df.apply(merge_fn, axis=1)))
+    
     if len(initial_reference_gpdf.columns) > 1:
         initial_reference_gpdf["fmt_time"] = initial_reference_gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
         reference_gpdf = initial_reference_gpdf[initial_reference_gpdf.latitude.notnull()]

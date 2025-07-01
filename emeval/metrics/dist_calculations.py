@@ -112,8 +112,8 @@ def filter_geo_df(geo_df, polygons):
     prepped_polygons = polygons.apply(lambda p: shp.prepared.prep(p))
     geo_df["outside_polygons"] = geo_df.apply(lambda r: is_point_outside_polygons(r, polygons), axis=1)
     # return a slice instead of setting a column value
-    # print("After filtering against polygons %s, %s -> %s" %
-    #     (len(polygons), len(geo_df), len(geo_df.query("outside_polygons==True"))))
+    print("After filtering against polygons %s, %s -> %s" %
+        (len(polygons), len(geo_df), len(geo_df.query("outside_polygons==True"))))
     return geo_df.query("outside_polygons==True")
 
 def filter_ground_truth_linestring(gt_shapes):
@@ -124,10 +124,10 @@ def filter_ground_truth_linestring(gt_shapes):
     start_intersection = gt_shapes.loc["route"].intersection(gt_shapes.loc["start_loc"])
     end_intersection = gt_shapes.loc["route"].intersection(gt_shapes.loc["end_loc"])
     # print(start_intersection, end_intersection)
-    if start_intersection.type == "MultiLineString":
+    if start_intersection.geom_type == "MultiLineString":
         start_intersection = start_intersection.geoms[-1]
     end_intersection = gt_shapes.loc["route"].intersection(gt_shapes.loc["end_loc"])
-    if end_intersection.type == "MultiLineString":
+    if end_intersection.geom_type == "MultiLineString":
         end_intersection = end_intersection.geoms[0]
     try:
         final_first_point = shp.geometry.Point(start_intersection.coords[-1])
