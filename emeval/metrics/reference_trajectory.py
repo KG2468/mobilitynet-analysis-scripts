@@ -108,6 +108,8 @@ def get_int_aligned_trajectory(location_df, pps=1.0, tz="UTC", filter=False):
     # new_ts_range = [float(ts) for ts in range(first_int_ts, last_int_ts, 1)]
     prev_loc = location_df.geometry.iloc[0]
     prev_ts = location_df.ts.iloc[0]
+    interp_pts = []
+    interp_ts = []
     start_ts = prev_ts
     new_points = [prev_loc]
     new_times = [prev_ts]
@@ -119,20 +121,37 @@ def get_int_aligned_trajectory(location_df, pps=1.0, tz="UTC", filter=False):
         if prev_loc == loc:
             consec += 1
             consec_i.append(i)
+            prev_ts = ts
             continue
-            
+        elif consec > 0:
+            prev_v = dtw.calDistance(interp_pts[0], interp_pts[-1]) / (interp_ts[-1] - interp_ts[0])
+            new_v = dtw.calDistance(prev_loc, loc) / (ts - prev_ts)
+            prev_ts = (prev_v * (prev_ts - interp_ts[-1])) / (new_v + prev_v) + interp_ts[-1]
+            # prev_ts = interp_ts[-1]
+            interp_pts, interp_ts = interpolate_points_along_linestring(shp.geometry.LineString([interp_pts[0], interp_pts[-1]]), prev_ts - interp_ts[0], points_per_second=pps, with_time=True, time=[interp_ts[0], prev_ts])
+            consec = 0
+            consec_i = []
+        
+        new_points.extend(interp_pts)
+        new_times.extend(interp_ts)
+
         if ts-prev_ts > 1.0/pps:
             points, times = interpolate_points_along_linestring(shp.geometry.LineString([prev_loc, loc]), ts - prev_ts, points_per_second=pps, with_time=True, time=[prev_ts, ts])
-            new_points.extend(points)
-            new_times.extend(times)
+            # new_points.extend(points)
+            # new_times.extend(times)
+            interp_pts = points
+            interp_ts = times
         else:
-            new_points.append(loc)
-            new_times.append(ts)
-        if ts - start_ts > len(new_points):
-            print(ts)
+            # new_points.append(loc)
+            # new_times.append(ts)
+            interp_pts = [prev_loc, loc]
+            interp_ts = [prev_ts, ts]
+        
         prev_loc = loc
         prev_ts = ts            
-    
+    new_points.extend(interp_pts)
+    new_times.extend(interp_ts)
+
     print("consec: %d" % consec, consec_i)
     new_fmt_time_range = [arrow.get(ts).to(tz) for ts in new_times]
     new_lat = [p.y for p in new_points]
@@ -682,33 +701,33 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1.0, interp=2):
     
     # print("In ref_ct_general, %s" % section_gt_shapes.filter(items=["start_loc","end_loc"]))
     
-    d_a = dtw.Dtw(gt_pts, a_pts_seq, dtw.calDistance)
-    d_a.calculate()
-    mapping_a = d_a.get_path()
+    # d_a = dtw.Dtw(gt_pts, a_pts_seq, dtw.calDistance)
+    # d_a.calculate()
+    # mapping_a = d_a.get_path()
    
     # mapping_a = list(zip(range(len(gt_pts)-1, -1, -1), [0]*len(gt_pts))) # special mapping that will bypass the device in question
     
     #save mapping_a to file
-    with open("mapping_a.txt", "w") as f:
-        for idx in range(len(mapping_a)):
-            f.write("%d %d\n" % (mapping_a[idx][0], mapping_a[idx][1]))
+    # with open("mapping_a.txt", "w") as f:
+    #     for idx in range(len(mapping_a)):
+    #         f.write("%d %d\n" % (mapping_a[idx][0], mapping_a[idx][1]))
     # print("bruh")
     #load mapping_a from file
-    # with open("mapping_a.txt", "r") as f:
-    #     mapping_a = [[int(x) for x in line.strip().split(" ")] for line in f.readlines()]
+    with open("mapping_a.txt", "r") as f:
+        mapping_a = [[int(x) for x in line.strip().split(" ")] for line in f.readlines()]
 
-    d_i = dtw.Dtw(gt_pts, i_pts_seq, dtw.calDistance)
-    d_i.calculate()
-    mapping_i = d_i.get_path()
+    # d_i = dtw.Dtw(gt_pts, i_pts_seq, dtw.calDistance)
+    # d_i.calculate()
+    # mapping_i = d_i.get_path()
     
     # # save mapping_i to file
-    with open("mapping_i.txt", "w") as f:
-        for idx in range(len(mapping_i)):
-            f.write("%d %d\n" % (mapping_i[idx][0], mapping_i[idx][1]))
+    # with open("mapping_i.txt", "w") as f:
+    #     for idx in range(len(mapping_i)):
+    #         f.write("%d %d\n" % (mapping_i[idx][0], mapping_i[idx][1]))
     
     #load mapping_i from file
-    # with open("mapping_i.txt", "r") as f:
-    #     mapping_i = [[int(x) for x in line.strip().split(" ")] for line in f.readlines()]
+    with open("mapping_i.txt", "r") as f:
+        mapping_i = [[int(x) for x in line.strip().split(" ")] for line in f.readlines()]
 
 
     groups_a = []
@@ -938,14 +957,45 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1.0, interp=2):
 
     speed_acceleration_jerk(gpdf)
     matching = []
+    sensor_coneness = [0, 0]
+    gt_coneness = [0, 0]
+    prev_matched_a = []
+    a_streak = 1
+    a_count_gt = 0
+    a_count_sens = 0
+    prev_matched_i = []
+    i_streak = 1
+    i_count_gt = 0
+    i_count_sens = 0
     for idx in range(len(firstpass_idxes)):
         match = [gt_pts[firstpass_idxes[idx]]]
         if timeseries_ids[idx] == 1 or timeseries_ids[idx] == 0:
-            match += [a_pts_seq[a_pts] for a_pts in groups_a[firstpass_idxes[idx]]]
+            a_count_gt += 1
+            matched_a = [a_pts_seq[a_pts] for a_pts in groups_a[firstpass_idxes[idx]]]
+            a_count_sens += len(matched_a)
+            match += matched_a
+            sensor_coneness[0] += len(matched_a)**2
+            if matched_a == prev_matched_a:
+                a_streak += 1
+            else:
+                gt_coneness[0] += a_streak**2
+                a_streak = 1
+            prev_matched_a = matched_a
         if timeseries_ids[idx] == 2 or timeseries_ids[idx] == 0:
-            match += [i_pts_seq[i_pts] for i_pts in groups_i[firstpass_idxes[idx]]]
+            i_count_gt += 1
+            matched_i = [i_pts_seq[i_pts] for i_pts in groups_i[firstpass_idxes[idx]]]
+            i_count_sens += len(matched_i)
+            match += matched_i
+            sensor_coneness[1] += len(matched_i)**2
+            if matched_i == prev_matched_i:
+                i_streak += 1
+            else:
+                gt_coneness[1] += i_streak**2
+                i_streak = 1
+            prev_matched_i = matched_i
         matching.append(match)
-    
+    print("Sensor Coneness android: %s, ios: %s" % (sensor_coneness[0]/a_count_sens, sensor_coneness[1]/i_count_sens))
+    print("GT Coneness android: %s, ios: %s" % (gt_coneness[0]/a_count_gt, gt_coneness[1]/i_count_gt))
     # for m in range(len(gt_pts)):
     #     match = [gt_pts[m]]
     #     if timeseries_ids[m] == 1 or timeseries_ids[m] == 0:
@@ -989,6 +1039,8 @@ def speed_acceleration_jerk(gpdf):
     gpdf["speed"] = speed
     gpdf["acceleration"] = acceleration
     gpdf["jerk"] = jerk
+
+
 
 # def kalman_filter(gpdf):
 #     kalman.UnscentedKalmanFilter()
