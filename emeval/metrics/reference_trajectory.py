@@ -124,13 +124,18 @@ def get_int_aligned_trajectory(location_df, pps=1.0, tz="UTC", filter=False):
             prev_ts = ts
             continue
         elif consec > 0:
-            prev_v = dtw.calDistance(interp_pts[0], interp_pts[-1]) / (interp_ts[-1] - interp_ts[0])
-            new_v = dtw.calDistance(prev_loc, loc) / (ts - prev_ts)
-            prev_ts = (prev_v * (prev_ts - interp_ts[-1])) / (new_v + prev_v) + interp_ts[-1]
-            # prev_ts = interp_ts[-1]
-            interp_pts, interp_ts = interpolate_points_along_linestring(shp.geometry.LineString([interp_pts[0], interp_pts[-1]]), prev_ts - interp_ts[0], points_per_second=pps, with_time=True, time=[interp_ts[0], prev_ts])
-            consec = 0
-            consec_i = []
+            if interp_pts == []:
+                prev_ts = location_df.ts.iloc[0]
+                consec = 0
+                consec_i = []
+            else:
+                prev_v = dtw.calDistance(interp_pts[0], interp_pts[-1]) / (interp_ts[-1] - interp_ts[0])
+                new_v = dtw.calDistance(prev_loc, loc) / (ts - prev_ts)
+                prev_ts = (prev_v * (prev_ts - interp_ts[-1])) / (new_v + prev_v) + interp_ts[-1]
+                # prev_ts = interp_ts[-1]
+                interp_pts, interp_ts = interpolate_points_along_linestring(shp.geometry.LineString([interp_pts[0], interp_pts[-1]]), prev_ts - interp_ts[0], points_per_second=pps, with_time=True, time=[interp_ts[0], prev_ts])
+                consec = 0
+                consec_i = []
         
         new_points.extend(interp_pts)
         new_times.extend(interp_ts)
@@ -181,6 +186,27 @@ def get_int_aligned_trajectory(location_df, pps=1.0, tz="UTC", filter=False):
 
         # print("Filtered %d points" % (old_len - len(new_gpdf)))
 
+    return new_gpdf
+
+def get_int_aligned_trajectory_legacy(location_df, tz="UTC"):
+    # mostly for ct_general bc it need precisely int aligned timestamps rather than interpolated data
+    lat_fn = sci.interp1d(x=location_df.ts, y=location_df.latitude)
+    lon_fn = sci.interp1d(x=location_df.ts, y=location_df.longitude)
+    # In order to avoid extrapolation, we use ceil for the first int and floor
+    # for the last int
+    first_int_ts = math.ceil(location_df.ts.iloc[0])
+    last_int_ts = math.floor(location_df.ts.iloc[-1])
+    new_ts_range = [float(ts) for ts in range(first_int_ts, last_int_ts, 1)]
+    new_fmt_time_range = [arrow.get(ts).to(tz) for ts in new_ts_range]
+    new_lat = lat_fn(new_ts_range)
+    new_lng = lon_fn(new_ts_range)
+    new_gpdf = gpd.GeoDataFrame({
+        "latitude": new_lat,
+        "longitude": new_lng,
+        "ts": new_ts_range,
+        "fmt_time": new_fmt_time_range,
+        "geometry": [shp.geometry.Point(x, y) for x, y in zip(new_lng, new_lat)]
+    })
     return new_gpdf
 
 ####
@@ -530,8 +556,8 @@ def ref_ct_general(e, b_merge_fn, dist_threshold, tz="UTC", include_ends=False):
         emd.to_geo_df(e["temporal_control"]["ios"]["location_df"]),
         section_gt_shapes.filter(["start_loc","end_loc"]))
     print(f"MATCH TRAJECTORY: {len(filtered_loc_df_a)=}, {len(filtered_loc_df_b)=}")
-    new_location_df_a = get_int_aligned_trajectory(filtered_loc_df_a, tz=tz)
-    new_location_df_i = get_int_aligned_trajectory(filtered_loc_df_b, tz=tz)
+    new_location_df_a = get_int_aligned_trajectory_legacy(filtered_loc_df_a, tz=tz)
+    new_location_df_i = get_int_aligned_trajectory_legacy(filtered_loc_df_b, tz=tz)
     merged_df = pd.merge(new_location_df_a, new_location_df_i, on="ts",
         how="inner", suffixes=("_a", "_i")).sort_values(by="ts", axis="index")
     merged_df["t_distance"] = emd.to_utm_series(gpd.GeoSeries(merged_df.geometry_a)).distance(emd.to_utm_series(gpd.GeoSeries(merged_df.geometry_i)))
@@ -656,7 +682,7 @@ def ref_gt_general(e, b_merge_fn, dist_threshold, tz="UTC", include_ends=False):
     else:
         return gpd.GeoDataFrame()
     
-def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1.0, interp=2):
+def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1.0, interp=2, coneness=False):
     """
     interp: 0 for just groundtruth interpolation, 1 for just sensor interpolation, 2 for both
     """
@@ -704,10 +730,11 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1.0, interp=2):
     # d_a = dtw.Dtw(gt_pts, a_pts_seq, dtw.calDistance)
     # d_a.calculate()
     # mapping_a = d_a.get_path()
+    # del d_a
    
     # mapping_a = list(zip(range(len(gt_pts)-1, -1, -1), [0]*len(gt_pts))) # special mapping that will bypass the device in question
     
-    #save mapping_a to file
+    # save mapping_a to file
     # with open("mapping_a.txt", "w") as f:
     #     for idx in range(len(mapping_a)):
     #         f.write("%d %d\n" % (mapping_a[idx][0], mapping_a[idx][1]))
@@ -719,7 +746,8 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1.0, interp=2):
     # d_i = dtw.Dtw(gt_pts, i_pts_seq, dtw.calDistance)
     # d_i.calculate()
     # mapping_i = d_i.get_path()
-    
+    # del d_i
+
     # # save mapping_i to file
     # with open("mapping_i.txt", "w") as f:
     #     for idx in range(len(mapping_i)):
@@ -994,8 +1022,11 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1.0, interp=2):
                 i_streak = 1
             prev_matched_i = matched_i
         matching.append(match)
-    print("Sensor Coneness android: %s, ios: %s" % (sensor_coneness[0]/a_count_sens, sensor_coneness[1]/i_count_sens))
-    print("GT Coneness android: %s, ios: %s" % (gt_coneness[0]/a_count_gt, gt_coneness[1]/i_count_gt))
+    
+    coneness_dict = {"sensor_coneness_android": sensor_coneness[0]/a_count_sens, "sensor_coneness_ios": sensor_coneness[1]/i_count_sens,
+    "gt_coneness_android": gt_coneness[0]/a_count_gt, "gt_coneness_ios": gt_coneness[1]/i_count_gt}
+    print("Sensor Coneness android: %s, ios: %s" % (coneness_dict["sensor_coneness_android"], coneness_dict["sensor_coneness_ios"]))
+    print("GT Coneness android: %s, ios: %s" % (coneness_dict["gt_coneness_android"], coneness_dict["gt_coneness_ios"]))
     # for m in range(len(gt_pts)):
     #     match = [gt_pts[m]]
     #     if timeseries_ids[m] == 1 or timeseries_ids[m] == 0:
@@ -1008,6 +1039,8 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1.0, interp=2):
     gpdf['latitude'] = gpdf.geometry.y
     gpdf["fmt_time"] = gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
     assert len(gpdf[gpdf.geometry.isnull()]) == 0, "Found %d null entries out of %d total" % (len(gpdf.geometry.isnull()), len(gpdf))
+    if coneness:
+        return gpdf, coneness_dict
     return gpdf
 
 def speed_acceleration_jerk(gpdf):
@@ -1132,9 +1165,9 @@ mean_median_jerk_ratio = lambda df, sr: df.jerk.abs().median()/df.jerk.abs().mea
 def stats_gen(ref_df, e):
     speed_acceleration_jerk(ref_df)
     stats = {
-        # "coverage_density": coverage_density(ref_df, e),
-        # "coverage_time": coverage_time(ref_df, e),
-        # "coverage_max_gap": coverage_max_gap(ref_df, e),
+        "coverage_density": coverage_density(ref_df, e),
+        "coverage_time": coverage_time(ref_df, e),
+        "coverage_max_gap": coverage_max_gap(ref_df, e),
         "max_jerk": max_jerk(ref_df, e),
         "max_acceleration": max_acceleration(ref_df, e),
         "max_speed": max_speed(ref_df, e),
@@ -1254,8 +1287,9 @@ def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False):
             stats = None
     elif function == 'dtw':
         try:
-            ref_df = ref_dtw_gt_with_ends_general(e, tz)
+            ref_df, coneness = ref_dtw_gt_with_ends_general(e, tz, coneness=True)
             stats = stats_gen(ref_df, e)
+            stats.update(coneness)
         except Exception as exp_dtw:
             print("Found exception %s while computing dtw_ref_df, skipping" % exp_dtw)
             traceback.print_exc()
