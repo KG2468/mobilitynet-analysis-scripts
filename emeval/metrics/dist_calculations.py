@@ -3,7 +3,7 @@ import pyproj
 import geopandas as gpd
 import shapely as shp
 import pandas as pd
-
+import math
 
 C = 40075017
 g = pyproj.Geod(ellps='clrk66')
@@ -78,6 +78,33 @@ def dist_using_projection(location_gpdf, gt_linestring):
     project_y = proj_points.apply(lambda p: p.y)
     return pd.Series(g.inv(list(location_gpdf.longitude), list(location_gpdf.latitude),
                  list(project_x), list(project_y))[2], index=location_gpdf.index)
+                
+def dist_using_projection_adjusted(location_gpdf, gt_linestring):
+    lat = gt_linestring.centroid.y
+    adjusted_points = [shp.geometry.Point(coord[0] / math.cos(math.radians(lat)), coord[1]) for coord in list(gt_linestring.coords)]
+    unadjusted_points = [shp.geometry.Point(coord[0], coord[1]) for coord in list(gt_linestring.coords)]
+    
+    adjusted_data = []
+    unadjusted_data = []
+    for p in zip(adjusted_points, unadjusted_points):
+        row = {}
+        row["geometry"] = p[0]
+        adjusted_data.append(row)
+        row2 = {}
+        row2["geometry"] = p[1]
+        unadjusted_data.append(row2)
+
+    adjusted_gt_gpdf = gpd.GeoDataFrame(adjusted_data, geometry="geometry")
+    unadjusted_gt_gpdf = gpd.GeoDataFrame(unadjusted_data, geometry="geometry")
+    
+    adjusted_location_linestring = shp.geometry.LineString([shp.geometry.Point(coord.x / math.cos(math.radians(lat)), coord.y) for coord in list(location_gpdf.geometry)])
+    projections = adjusted_gt_gpdf.geometry.apply(lambda p: adjusted_location_linestring.project(p))
+    proj_points = projections.apply(lambda d:adjusted_location_linestring.interpolate(d))
+
+    project_x = proj_points.apply(lambda p: p.x * math.cos(math.radians(lat)))
+    project_y = proj_points.apply(lambda p: p.y)
+    return pd.Series(g.inv(list(unadjusted_gt_gpdf.geometry.x), list(unadjusted_gt_gpdf.geometry.y),
+                 list(project_x), list(project_y))[2], index=unadjusted_gt_gpdf.index).mean()
 
 def to_geo_df(loc_df):
     return gpd.GeoDataFrame(loc_df, geometry=loc_df.apply(lambda lr: 
