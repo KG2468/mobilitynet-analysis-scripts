@@ -259,102 +259,110 @@ def collapse_outer_join_stateless(loc_row, b_merge_fn):
         "source": source
     }
 
-def collapse_outer_join_dist_so_far(loc_row, more_details_fn = None):
+def make_collapse_outer_join_dist_so_far(more_details_fn = None):
     """
-    Collapse a merged row through outer join. This means that we can have
-    either the left side or the right side, or both. In this case, we also
-    want to make sure that the trajectory state is "progressing". In this only
-    current implementation, we check that the distance along the ground truth
-    trajectory is progressively increasing.  Since this can be complex to debug,
-    the `more_details` function returns `True` for rows for which we need more
-    details of the computation.
+    Build a stateful collapse function for an outer-join merge that tracks the
+    distance travelled so far along the ground truth linestring. The running
+    `distance_so_far` is kept in a closure instead of a module-level global so
+    that multiple reference trajectories can be constructed concurrently (e.g.
+    on separate threads) without corrupting each other's progress state.
+
+    The returned callable has the same semantics as the previous
+    `collapse_outer_join_dist_so_far`: it collapses a merged row through outer
+    join, preferring whichever side keeps the trajectory progressing forward
+    along the ground truth.
     """
-    global distance_so_far
+    state = {"distance_so_far": 0}
 
-    source = None
-    more_details = False
-    EMPTY_POINT = shp.geometry.Point()
+    def collapse_outer_join_dist_so_far(loc_row):
+        source = None
+        more_details = False
+        EMPTY_POINT = shp.geometry.Point()
 
-    if more_details_fn is not None and more_details_fn(loc_row):
-        more_details = True
+        if more_details_fn is not None and more_details_fn(loc_row):
+            more_details = True
 
-    if more_details:
-        print(loc_row.gt_projection_a, loc_row.gt_projection_i)
-    if pd.isnull(loc_row.geometry_i):
-        assert not pd.isnull(loc_row.geometry_a)
-        if loc_row.gt_projection_a > distance_so_far:
-            final_geom = loc_row.geometry_a
-            source = "android"
-        else:
-            final_geom = EMPTY_POINT
-    elif pd.isnull(loc_row.geometry_a):
-        assert not pd.isnull(loc_row.geometry_i)
-        if loc_row.gt_projection_i > distance_so_far:
-            final_geom = loc_row.geometry_i
-            source = "ios"
-        else:
-            final_geom = EMPTY_POINT
-    else:
-        assert not pd.isnull(loc_row.geometry_i) and not pd.isnull(loc_row.geometry_a)
-        choice_series = gpd.GeoSeries([loc_row.geometry_a, loc_row.geometry_i])
-        gt_projection_line_series = pd.Series([loc_row.gt_projection_a, loc_row.gt_projection_i])
+        distance_so_far = state["distance_so_far"]
+
         if more_details:
-            print("gt_projection_line = %s" % gt_projection_line_series)
-        distance_from_last_series = gt_projection_line_series.apply(lambda d: d - distance_so_far)
-        if more_details:
-            print("distance_from_last_series = %s" % distance_from_last_series)
-
-        # assert not (distance_from_last_series < 0).all(), "distance_so_far = %s, distance_from_last = %s" % (distance_so_far, distance_from_last_series)
-        if (distance_from_last_series < 0).all():
-            if more_details:
-                print("all distances are negative, skipping...")
-            final_geom = EMPTY_POINT
-        else:
-            if (distance_from_last_series < 0).any():
-                # avoid going backwards along the linestring (wonder how this works with San Jose u-turn)
-                closer_idx = distance_from_last_series.idxmax()
-                if more_details:
-                    print("one distance is going backwards, found closer_idx = %d" % closer_idx)
-
-            else:
-                distance_from_gt_series = pd.Series([loc_row.gt_distance_a, loc_row.gt_distance_i])
-                if more_details:
-                    print("distance_from_gt_series = %s" % distance_from_gt_series)
-                closer_idx = distance_from_gt_series.idxmin()
-                if more_details:
-                    print("both distances are positive, found closer_idx = %d" % closer_idx)
-
-            if closer_idx == 0:
+            print(loc_row.gt_projection_a, loc_row.gt_projection_i)
+        if pd.isnull(loc_row.geometry_i):
+            assert not pd.isnull(loc_row.geometry_a)
+            if loc_row.gt_projection_a > distance_so_far:
+                final_geom = loc_row.geometry_a
                 source = "android"
             else:
+                final_geom = EMPTY_POINT
+        elif pd.isnull(loc_row.geometry_a):
+            assert not pd.isnull(loc_row.geometry_i)
+            if loc_row.gt_projection_i > distance_so_far:
+                final_geom = loc_row.geometry_i
                 source = "ios"
-            final_geom = choice_series.loc[closer_idx]
-
-    if final_geom != EMPTY_POINT:
-        if source == "android":
-            distance_so_far = loc_row.gt_projection_a
+            else:
+                final_geom = EMPTY_POINT
         else:
-            assert source == "ios"
-            distance_so_far = loc_row.gt_projection_i
-        
-    if more_details:
-        print("final_geom = %s, new_distance_so_far = %s" % (final_geom, distance_so_far))
-    if final_geom == EMPTY_POINT:
-        return {
-            "ts": loc_row.ts,
-            "longitude": np.nan,
-            "latitude": np.nan,
-            "geometry": EMPTY_POINT,
-            "source": source
-        }
-    else:
-        return {
-            "ts": loc_row.ts,
-            "longitude": final_geom.x,
-            "latitude": final_geom.y,
-            "geometry": final_geom,
-            "source": source
-        }
+            assert not pd.isnull(loc_row.geometry_i) and not pd.isnull(loc_row.geometry_a)
+            choice_series = gpd.GeoSeries([loc_row.geometry_a, loc_row.geometry_i])
+            gt_projection_line_series = pd.Series([loc_row.gt_projection_a, loc_row.gt_projection_i])
+            if more_details:
+                print("gt_projection_line = %s" % gt_projection_line_series)
+            distance_from_last_series = gt_projection_line_series.apply(lambda d: d - distance_so_far)
+            if more_details:
+                print("distance_from_last_series = %s" % distance_from_last_series)
+
+            # assert not (distance_from_last_series < 0).all(), "distance_so_far = %s, distance_from_last = %s" % (distance_so_far, distance_from_last_series)
+            if (distance_from_last_series < 0).all():
+                if more_details:
+                    print("all distances are negative, skipping...")
+                final_geom = EMPTY_POINT
+            else:
+                if (distance_from_last_series < 0).any():
+                    # avoid going backwards along the linestring (wonder how this works with San Jose u-turn)
+                    closer_idx = distance_from_last_series.idxmax()
+                    if more_details:
+                        print("one distance is going backwards, found closer_idx = %d" % closer_idx)
+
+                else:
+                    distance_from_gt_series = pd.Series([loc_row.gt_distance_a, loc_row.gt_distance_i])
+                    if more_details:
+                        print("distance_from_gt_series = %s" % distance_from_gt_series)
+                    closer_idx = distance_from_gt_series.idxmin()
+                    if more_details:
+                        print("both distances are positive, found closer_idx = %d" % closer_idx)
+
+                if closer_idx == 0:
+                    source = "android"
+                else:
+                    source = "ios"
+                final_geom = choice_series.loc[closer_idx]
+
+        if final_geom != EMPTY_POINT:
+            if source == "android":
+                state["distance_so_far"] = loc_row.gt_projection_a
+            else:
+                assert source == "ios"
+                state["distance_so_far"] = loc_row.gt_projection_i
+
+        if more_details:
+            print("final_geom = %s, new_distance_so_far = %s" % (final_geom, state["distance_so_far"]))
+        if final_geom == EMPTY_POINT:
+            return {
+                "ts": loc_row.ts,
+                "longitude": np.nan,
+                "latitude": np.nan,
+                "geometry": EMPTY_POINT,
+                "source": source
+            }
+        else:
+            return {
+                "ts": loc_row.ts,
+                "longitude": final_geom.x,
+                "latitude": final_geom.y,
+                "geometry": final_geom,
+                "source": source
+            }
+
+    return collapse_outer_join_dist_so_far
 
 def group_points(mapping, options=-1):
     """
@@ -1155,9 +1163,6 @@ def speed_acceleration_jerk(gpdf):
 
 
 def ref_travel_forward(e, dist_threshold, tz="UTC", include_ends=False):
-    # This function needs a global variable
-    global distance_so_far
-    distance_so_far = 0
     fill_gt_linestring(e)
     section_gt_shapes = e["ground_truth"]["gt_shapes"]
     # print(f"GEO_DF: before filtering, {len(e['temporal_control']['android']['location_df'])=} and {len(e['temporal_control']['ios']['location_df'])=}")
@@ -1195,7 +1200,7 @@ def ref_travel_forward(e, dist_threshold, tz="UTC", include_ends=False):
            len(filtered_location_df_i), len(new_location_df_i), (len(filtered_location_df_i)/len(new_location_df_i))))
     merged_df = pd.merge(filtered_location_df_a, filtered_location_df_i, on="ts",
         how="outer", suffixes=("_a", "_i")).sort_values(by="ts", axis="index")
-    merge_fn = functools.partial(collapse_outer_join_dist_so_far, more_details_fn = None)
+    merge_fn = make_collapse_outer_join_dist_so_far(more_details_fn = None)
     initial_reference_gpdf = gpd.GeoDataFrame(list(merged_df.apply(merge_fn, axis=1)))
     if include_ends:
         [start_initial_ends_gpdf, end_initial_ends_gpdf] = ref_ends(e, dist_threshold, tz)
@@ -1212,6 +1217,253 @@ def ref_travel_forward(e, dist_threshold, tz="UTC", include_ends=False):
         return reference_gpdf
     else:
         return gpd.GeoDataFrame()
+
+
+####
+# BEGIN: Single-stream reference constructions
+# These build a reference from a SINGLE device stream (android or ios) instead
+# of merging both. They are the single-stream analogues of `ref_travel_forward`
+# and `ref_dtw_gt_with_ends_general`, plus a raw (no-interpolation) reference.
+####
+
+def _forward_progress_filter(location_df):
+    """
+    Keep only the points whose projection along the ground truth linestring is
+    strictly increasing, i.e. the single-stream analogue of the forward-progress
+    check in `make_collapse_outer_join_dist_so_far`. This drops points that
+    would make the reference travel backwards along the ground truth.
+    """
+    distance_so_far = 0
+    keep = []
+    for i in range(len(location_df)):
+        proj = location_df.gt_projection.iloc[i]
+        if proj > distance_so_far:
+            keep.append(True)
+            distance_so_far = proj
+        else:
+            keep.append(False)
+    return location_df[pd.Series(keep, index=location_df.index)]
+
+def ref_ends_single(e, dist_threshold, device, tz="UTC"):
+    """
+    Single-stream analogue of `ref_ends`: match the start/end location points of
+    a single device to the ground truth, retaining only those within
+    `dist_threshold` of the ground truth linestring.
+    """
+    utm_gt_linestring = e["ground_truth"]["utm_linestring"]
+    section_gt_shapes = e["ground_truth"]["gt_shapes"]
+
+    def _get_filtered_loc(gt_key):
+        unfiltered = emd.to_geo_df(e["temporal_control"][device]["location_df"]).copy()
+        emd.filter_geo_df(unfiltered, section_gt_shapes.filter([gt_key]))
+        return unfiltered.query("outside_polygons==False")
+
+    def _match_single_to_gt(filtered_loc_df):
+        if len(filtered_loc_df) < 2:
+            return gpd.GeoDataFrame([])
+        new_location_df = get_int_aligned_trajectory(filtered_loc_df, tz)
+        new_location_df_u = emd.to_utm_df(new_location_df)
+        add_gt_error_projection(new_location_df_u, utm_gt_linestring)
+        new_location_df["gt_distance"] = new_location_df_u.gt_distance
+        new_location_df["gt_projection"] = new_location_df_u.gt_projection
+        filtered = new_location_df.query("gt_distance < @dist_threshold")
+        if len(filtered) == 0:
+            return gpd.GeoDataFrame([])
+        filtered = gpd.GeoDataFrame(filtered).copy()
+        filtered["source"] = device
+        return filtered
+
+    start_ends = _match_single_to_gt(_get_filtered_loc("start_loc"))
+    end_ends = _match_single_to_gt(_get_filtered_loc("end_loc"))
+    return [start_ends, end_ends]
+
+def ref_travel_forward_single(e, dist_threshold, device, tz="UTC", include_ends=False):
+    """
+    Single-stream travel-forward reference. Uses only `device`'s trajectory,
+    filters to points close to the ground truth, and keeps only points that
+    make forward progress along the ground truth.
+    """
+    fill_gt_linestring(e)
+    section_gt_shapes = e["ground_truth"]["gt_shapes"]
+    filtered_loc_df = emd.filter_geo_df(
+        emd.to_geo_df(e["temporal_control"][device]["location_df"]),
+        section_gt_shapes.filter(["start_loc", "end_loc"]))
+    new_location_df = get_int_aligned_trajectory(filtered_loc_df, tz)
+
+    utm_gt_linestring = e["ground_truth"]["utm_linestring"]
+    new_location_df_u = emd.to_utm_df(new_location_df)
+    add_gt_error_projection(new_location_df_u, utm_gt_linestring)
+    new_location_df["gt_distance"] = new_location_df_u.gt_distance
+    new_location_df["gt_projection"] = new_location_df_u.gt_projection
+
+    filtered_location_df = new_location_df.query("gt_distance < @dist_threshold")
+    print("SINGLE TF (%s): after gt_distance filter, retained %d of %d" %
+          (device, len(filtered_location_df), len(new_location_df)))
+
+    reference_gpdf = gpd.GeoDataFrame(_forward_progress_filter(filtered_location_df)).copy()
+    reference_gpdf["source"] = device
+
+    if include_ends:
+        [start_ends, end_ends] = ref_ends_single(e, dist_threshold, device, tz)
+        reference_gpdf = pd.concat([start_ends, reference_gpdf, end_ends], axis=0).sort_values(by="ts").reset_index(drop=True)
+
+    reference_gpdf = reference_gpdf[reference_gpdf.geometry.notnull()]
+    if len(reference_gpdf) > 1 and len(reference_gpdf.columns) > 1:
+        reference_gpdf = reference_gpdf.drop_duplicates(subset="ts", keep="first").sort_values(by="ts").reset_index(drop=True)
+        reference_gpdf["fmt_time"] = reference_gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
+        return gpd.GeoDataFrame(reference_gpdf)
+    else:
+        return gpd.GeoDataFrame()
+
+def _spread_equal_timestamps(timestamps):
+    """
+    Make a non-decreasing timestamp list strictly increasing by linearly
+    spreading runs of identical timestamps up to the next distinct value. This
+    avoids division-by-zero when computing speed/acceleration/jerk for
+    single-stream DTW references where many ground truth points can map to the
+    same device point (and therefore share a timestamp).
+    """
+    ts = list(timestamps)
+    n = len(ts)
+    i = 0
+    while i < n:
+        j = i
+        while j + 1 < n and ts[j + 1] == ts[i]:
+            j += 1
+        if j > i:
+            nxt = ts[j + 1] if j + 1 < n else (ts[i] + (j - i + 1))
+            start = ts[i]
+            step = (nxt - start) / (j - i + 1)
+            for k in range(i, j + 1):
+                ts[k] = start + (k - i) * step
+        i = j + 1
+    return ts
+
+def ref_dtw_gt_single(e, device, tz="UTC", points_per_second=1, interp=2):
+    """
+    Single-stream DTW reference. Runs DTW between ground truth points and a
+    single device's trajectory, then for each ground truth point uses the mean
+    timestamp of the matched device points. The reference geometry follows the
+    ground truth points (consistent with `ref_dtw_gt_with_ends_general`).
+    """
+    fill_gt_linestring(e)
+    pts = emd.to_geo_df(e["temporal_control"][device]["location_df"])
+    if interp >= 1:
+        new_pts = get_int_aligned_trajectory(pts, tz, True, True)
+    else:
+        new_pts = pts
+    pts_seq = new_pts["geometry"].to_list()
+    if len(pts_seq) < 2:
+        return gpd.GeoDataFrame()
+
+    start_ts = new_pts["ts"].iloc[0]
+    end_ts = new_pts["ts"].iloc[-1]
+
+    if interp == 0 or interp == 2:
+        gt_pts = interpolate_points_along_linestring(e["ground_truth"]["linestring"], time_interval=(end_ts - start_ts), points_per_second=points_per_second)
+    else:
+        gt_pts = [shp.geometry.Point(coord) for coord in list(e["ground_truth"]["linestring"].coords)]
+
+    d = dtw.Dtw(gt_pts, pts_seq, dtw.calDistance)
+    d.calculate()
+    mapping = d.get_path()
+
+    groups = []
+    m_idx = len(mapping) - 1
+    for idx in range(len(gt_pts)):
+        group = []
+        while m_idx >= 0 and mapping[m_idx][0] == idx:
+            group.append(mapping[m_idx][1])
+            m_idx -= 1
+        groups.append(group)
+
+    points = []
+    timestamps = []
+    matching = []
+    for idx in range(len(gt_pts)):
+        unique_elements = sorted(set(groups[idx]))
+        if len(unique_elements) == 0:
+            continue
+        df = new_pts.iloc[unique_elements]
+        matched_ts_mean = float(np.mean(df["ts"].to_list()))
+        points.append(gt_pts[idx])
+        timestamps.append(matched_ts_mean)
+        matching.append([gt_pts[idx]] + [pts_seq[p] for p in unique_elements])
+
+    if len(points) == 0:
+        return gpd.GeoDataFrame()
+
+    timestamps = _spread_equal_timestamps(timestamps)
+
+    gpdf = gpd.GeoDataFrame(data={'ts': timestamps}, geometry=points)
+    speed_acceleration_jerk(gpdf)
+    gpdf['matching'] = matching
+    gpdf['longitude'] = gpdf.geometry.x
+    gpdf['latitude'] = gpdf.geometry.y
+    gpdf['source'] = device
+    gpdf["fmt_time"] = gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
+    assert len(gpdf[gpdf.geometry.isnull()]) == 0, "Found %d null entries out of %d total" % (len(gpdf.geometry.isnull()), len(gpdf))
+    return gpdf
+
+def raw_reference(e, device, tz="UTC"):
+    """
+    Use a single device's completely raw GPS trajectory (no interpolation, no
+    ground-truth filtering) as the reference. This is the baseline against which
+    the constructed references are compared.
+    """
+    fill_gt_linestring(e)
+    raw_df = emd.to_geo_df(e["temporal_control"][device]["location_df"]).copy()
+    if len(raw_df) < 2:
+        return gpd.GeoDataFrame()
+    gpdf = gpd.GeoDataFrame(raw_df).sort_values(by="ts").reset_index(drop=True)
+    gpdf["longitude"] = gpdf.geometry.x
+    gpdf["latitude"] = gpdf.geometry.y
+    gpdf["source"] = device
+    gpdf["fmt_time"] = gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
+    return gpdf
+
+def spatio_temporal_error(two_stream_df, other_df):
+    """
+    Spatio-temporal error of `other_df` relative to the 2-stream (DTW) reference
+    `two_stream_df`. For each point in `two_stream_df`, find the closest point in
+    `other_df` using
+
+        sqrt(spatial_dist^2 + (speed_at_point * time_diff)^2)
+
+    where `spatial_dist` is in meters, `speed_at_point` is the speed of the
+    2-stream reference point being iterated, and `time_diff = |ts_ref - ts_other|`.
+    The per-point minimums are averaged to produce the final error.
+    """
+    if two_stream_df is None or other_df is None or len(two_stream_df) == 0 or len(other_df) == 0:
+        return np.nan
+
+    if "speed" not in two_stream_df.columns:
+        two_stream_df = two_stream_df.copy()
+        speed_acceleration_jerk(two_stream_df)
+
+    ref_utm = emd.to_utm_series(gpd.GeoSeries(list(two_stream_df.geometry)))
+    other_utm = emd.to_utm_series(gpd.GeoSeries(list(other_df.geometry)))
+    other_x = np.array([p.x for p in other_utm])
+    other_y = np.array([p.y for p in other_utm])
+    other_ts = np.array(list(other_df.ts), dtype=float)
+
+    ref_ts = list(two_stream_df.ts)
+    ref_speed = list(two_stream_df.speed)
+
+    errors = []
+    for k, p in enumerate(ref_utm):
+        spatial = np.sqrt((other_x - p.x) ** 2 + (other_y - p.y) ** 2)
+        dt = np.abs(other_ts - float(ref_ts[k]))
+        speed_k = ref_speed[k]
+        if pd.isnull(speed_k):
+            speed_k = 0.0
+        combined = np.sqrt(spatial ** 2 + (speed_k * dt) ** 2)
+        errors.append(combined.min())
+    return float(np.mean(errors))
+
+####
+# END: Single-stream reference constructions
+####
 
 
 ####
@@ -1324,7 +1576,7 @@ def final_ref_ensemble(e, dist_threshold=25, tz="UTC", include_ends=False):
 # END: Final ensemble reference construction that uses ground truth
 ####
 
-def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False):
+def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False, device=None):
     fill_gt_linestring(e)
     gt_linestring = e["ground_truth"]["linestring"]
 
@@ -1339,8 +1591,15 @@ def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False):
             "max_speed": max_speed(ref_df, e),
             "median_jerk": median_jerk(ref_df, e),
             "mean_median_jerk_ratio": mean_median_jerk_ratio(ref_df, e)
-            # "gt_error":
         }
+        # Spatial (ground truth) error: average distance of the reference from
+        # the ground truth linestring. Moved here from the notebook so every
+        # reference variant gets a consistent `gt_error` in its stats.
+        try:
+            stats["gt_error"] = emd.dist_using_projection_adjusted(ref_df, gt_linestring)
+        except Exception as exp_gt:
+            print("Found exception %s while computing gt_error" % exp_gt)
+            stats["gt_error"] = np.nan
         return stats
     
     if function == 'tf':
@@ -1373,6 +1632,33 @@ def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False):
             stats = stats_gen(ref_df, e)
         except Exception as exp_dtw:
             print("Found exception %s while computing dtw_no_collapse_ref_df, skipping" % exp_dtw)
+            traceback.print_exc()
+            stats = None
+    elif function == 'tf_single':
+        assert device is not None, "tf_single requires a device ('android' or 'ios')"
+        try:
+            ref_df = ref_travel_forward_single(e, dist_threshold, device, tz, include_ends)
+            stats = stats_gen(ref_df, e)
+        except Exception as exp_tfs:
+            print("Found exception %s while computing tf_single_ref_df (%s), skipping" % (exp_tfs, device))
+            traceback.print_exc()
+            stats = None
+    elif function == 'dtw_single':
+        assert device is not None, "dtw_single requires a device ('android' or 'ios')"
+        try:
+            ref_df = ref_dtw_gt_single(e, device, tz)
+            stats = stats_gen(ref_df, e)
+        except Exception as exp_dtws:
+            print("Found exception %s while computing dtw_single_ref_df (%s), skipping" % (exp_dtws, device))
+            traceback.print_exc()
+            stats = None
+    elif function == 'raw':
+        assert device is not None, "raw requires a device ('android' or 'ios')"
+        try:
+            ref_df = raw_reference(e, device, tz)
+            stats = stats_gen(ref_df, e)
+        except Exception as exp_raw:
+            print("Found exception %s while computing raw_ref_df (%s), skipping" % (exp_raw, device))
             traceback.print_exc()
             stats = None
     else:
