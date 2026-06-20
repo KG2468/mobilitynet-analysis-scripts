@@ -527,7 +527,15 @@ def ref_ct_general(e, b_merge_fn, dist_threshold, tz="UTC", include_ends=False):
     if include_ends:
         [start_initial_ends_gpdf, end_initial_ends_gpdf] = ref_ends(e, dist_threshold, tz)
         print(f"CONCAT: {include_ends=}, before concatenating {len(start_initial_ends_gpdf)=}, {len(initial_reference_gpdf)=}, {len(end_initial_ends_gpdf)=}")
-        initial_reference_gpdf = pd.concat([start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf], axis=0).sort_values(by="ts").reset_index(drop=True)
+        # Only concatenate frames that actually have a `ts` column; when every
+        # piece is empty (no matched points) the concatenated frame has no
+        # columns and `sort_values(by="ts")` raises KeyError: 'ts'.
+        to_concat = [df for df in [start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf] if "ts" in df.columns]
+        if len(to_concat) > 0:
+            initial_reference_gpdf = pd.concat(to_concat, axis=0).sort_values(by="ts").reset_index(drop=True)
+        else:
+            initial_reference_gpdf = gpd.GeoDataFrame()
+            print("No valid data to concatenate for trip_id:", e["trip_id"], e["section_id"])
         print(f"CONCAT: {include_ends=}, after concatenating {len(initial_reference_gpdf)=}")
     # print(end_initial_ends_gpdf)
     print(initial_reference_gpdf.columns)
@@ -627,7 +635,15 @@ def ref_gt_general(e, b_merge_fn, dist_threshold, tz="UTC", include_ends=False):
     initial_reference_gpdf = gpd.GeoDataFrame(list(merged_df.apply(merge_fn, axis=1)))
     if include_ends:
         [start_initial_ends_gpdf, end_initial_ends_gpdf] = ref_ends(e, dist_threshold, tz)
-        initial_reference_gpdf = pd.concat([start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf], axis=0).sort_values(by="ts").reset_index(drop=True)
+        # Only concatenate frames that actually have a `ts` column; when every
+        # piece is empty (no matched points) the concatenated frame has no
+        # columns and `sort_values(by="ts")` raises KeyError: 'ts'.
+        to_concat = [df for df in [start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf] if "ts" in df.columns]
+        if len(to_concat) > 0:
+            initial_reference_gpdf = pd.concat(to_concat, axis=0).sort_values(by="ts").reset_index(drop=True)
+        else:
+            initial_reference_gpdf = gpd.GeoDataFrame()
+            print("No valid data to concatenate for trip_id:", e["trip_id"], e["section_id"])
     if len(initial_reference_gpdf.columns) > 1:
         initial_reference_gpdf["fmt_time"] = initial_reference_gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
         print("After merging, found %d of android %d (%s), ios %d (%s)" %
@@ -1205,7 +1221,15 @@ def ref_travel_forward(e, dist_threshold, tz="UTC", include_ends=False):
     if include_ends:
         [start_initial_ends_gpdf, end_initial_ends_gpdf] = ref_ends(e, dist_threshold, tz)
         print(f"CONCAT: {include_ends=}, before concatenating {len(start_initial_ends_gpdf)=}, {len(initial_reference_gpdf)=}, {len(end_initial_ends_gpdf)=}")
-        initial_reference_gpdf = pd.concat([start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf], axis=0).sort_values(by="ts").reset_index(drop=True)
+        # Only concatenate frames that actually have a `ts` column; when every
+        # piece is empty (no matched points) the concatenated frame has no
+        # columns and `sort_values(by="ts")` raises KeyError: 'ts'.
+        to_concat = [df for df in [start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf] if "ts" in df.columns]
+        if len(to_concat) > 0:
+            initial_reference_gpdf = pd.concat(to_concat, axis=0).sort_values(by="ts").reset_index(drop=True)
+        else:
+            initial_reference_gpdf = gpd.GeoDataFrame()
+            print("No valid data to concatenate for trip_id:", e["trip_id"], e["section_id"])   
         print(f"CONCAT: {include_ends=}, after concatenating {len(initial_reference_gpdf)=}")
     if len(initial_reference_gpdf.columns) > 1:
         initial_reference_gpdf["fmt_time"] = initial_reference_gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
@@ -1266,7 +1290,10 @@ def ref_ends_single(e, dist_threshold, device, tz="UTC"):
         add_gt_error_projection(new_location_df_u, utm_gt_linestring)
         new_location_df["gt_distance"] = new_location_df_u.gt_distance
         new_location_df["gt_projection"] = new_location_df_u.gt_projection
-        filtered = new_location_df.query("gt_distance < @dist_threshold")
+        # `dist_threshold` is a closure variable from the enclosing
+        # `ref_ends_single`, which `DataFrame.query`'s `@` lookup cannot resolve
+        # (it only sees true locals). Use boolean indexing instead.
+        filtered = new_location_df[new_location_df.gt_distance < dist_threshold]
         if len(filtered) == 0:
             return gpd.GeoDataFrame([])
         filtered = gpd.GeoDataFrame(filtered).copy()
