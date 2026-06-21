@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
-#
+#SBATCH --chdir=/projects/teta/kgovil/mobilitynet-analysis-scripts
+#SBATCH --mail-user=kinjal.govil@nlr.gov
+#SBATCH --mail-type=ALL
+#SBATCH --nodes=1
 # Execute trajectory_evaluation_spatio_temporal_all.ipynb up to and including
 # cell 30, then stop. The first 30 cells are sliced into a temporary notebook,
 # executed in order, and the executed result is written to
 # trajectory_evaluation_spatio_temporal_all.cell30.ipynb so the computed
 # outputs are preserved.
 
+source setup/activate_conda.sh
+
 set -euo pipefail
 
 NOTEBOOK="trajectory_evaluation_spatio_temporal_all.ipynb"
 N_CELLS=30
 OUTPUT="trajectory_evaluation_spatio_temporal_all.cell30.ipynb"
-
-cd "$(dirname "$0")"
 
 if [[ ! -f "$NOTEBOOK" ]]; then
     echo "Notebook not found: $NOTEBOOK" >&2
