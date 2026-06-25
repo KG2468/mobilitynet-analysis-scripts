@@ -527,15 +527,7 @@ def ref_ct_general(e, b_merge_fn, dist_threshold, tz="UTC", include_ends=False):
     if include_ends:
         [start_initial_ends_gpdf, end_initial_ends_gpdf] = ref_ends(e, dist_threshold, tz)
         print(f"CONCAT: {include_ends=}, before concatenating {len(start_initial_ends_gpdf)=}, {len(initial_reference_gpdf)=}, {len(end_initial_ends_gpdf)=}")
-        # Only concatenate frames that actually have a `ts` column; when every
-        # piece is empty (no matched points) the concatenated frame has no
-        # columns and `sort_values(by="ts")` raises KeyError: 'ts'.
-        to_concat = [df for df in [start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf] if "ts" in df.columns]
-        if len(to_concat) > 0:
-            initial_reference_gpdf = pd.concat(to_concat, axis=0).sort_values(by="ts").reset_index(drop=True)
-        else:
-            initial_reference_gpdf = gpd.GeoDataFrame()
-            print("No valid data to concatenate for trip_id:", e["trip_id"], e["section_id"])
+        initial_reference_gpdf = pd.concat([start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf], axis=0).sort_values(by="ts").reset_index(drop=True)
         print(f"CONCAT: {include_ends=}, after concatenating {len(initial_reference_gpdf)=}")
     # print(end_initial_ends_gpdf)
     print(initial_reference_gpdf.columns)
@@ -635,15 +627,7 @@ def ref_gt_general(e, b_merge_fn, dist_threshold, tz="UTC", include_ends=False):
     initial_reference_gpdf = gpd.GeoDataFrame(list(merged_df.apply(merge_fn, axis=1)))
     if include_ends:
         [start_initial_ends_gpdf, end_initial_ends_gpdf] = ref_ends(e, dist_threshold, tz)
-        # Only concatenate frames that actually have a `ts` column; when every
-        # piece is empty (no matched points) the concatenated frame has no
-        # columns and `sort_values(by="ts")` raises KeyError: 'ts'.
-        to_concat = [df for df in [start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf] if "ts" in df.columns]
-        if len(to_concat) > 0:
-            initial_reference_gpdf = pd.concat(to_concat, axis=0).sort_values(by="ts").reset_index(drop=True)
-        else:
-            initial_reference_gpdf = gpd.GeoDataFrame()
-            print("No valid data to concatenate for trip_id:", e["trip_id"], e["section_id"])
+        initial_reference_gpdf = pd.concat([start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf], axis=0).sort_values(by="ts").reset_index(drop=True)
     if len(initial_reference_gpdf.columns) > 1:
         initial_reference_gpdf["fmt_time"] = initial_reference_gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
         print("After merging, found %d of android %d (%s), ios %d (%s)" %
@@ -680,7 +664,7 @@ def douglas_peucker(e, tz="UTC", dist_threshold=10, interp=2, points_per_second=
     
 
 
-def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2):
+def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, time_threshold=300):
     fill_gt_linestring(e)
     a_pts = emd.to_geo_df(e["temporal_control"]["android"]["location_df"])
     i_pts = emd.to_geo_df(e["temporal_control"]["ios"]["location_df"])
@@ -787,7 +771,7 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2):
         #Outlier removal
         # ranges.append(max(matched_ts_a + matched_ts_i)-min(matched_ts_a + matched_ts_i))
         # if len(matched_points) == 2:
-        if abs(matched_ts_mean_a - matched_ts_mean_i) > 300:
+        if abs(matched_ts_mean_a - matched_ts_mean_i) > time_threshold:
             if dtw.calDistance(gt_pts[idx], matched_points_centroid_a) > dtw.calDistance(gt_pts[idx], matched_points_centroid_i):
                 # points.append(matched_points_i_centroid)
                 if timeseries_id != 2:
@@ -1221,15 +1205,7 @@ def ref_travel_forward(e, dist_threshold, tz="UTC", include_ends=False):
     if include_ends:
         [start_initial_ends_gpdf, end_initial_ends_gpdf] = ref_ends(e, dist_threshold, tz)
         print(f"CONCAT: {include_ends=}, before concatenating {len(start_initial_ends_gpdf)=}, {len(initial_reference_gpdf)=}, {len(end_initial_ends_gpdf)=}")
-        # Only concatenate frames that actually have a `ts` column; when every
-        # piece is empty (no matched points) the concatenated frame has no
-        # columns and `sort_values(by="ts")` raises KeyError: 'ts'.
-        to_concat = [df for df in [start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf] if "ts" in df.columns]
-        if len(to_concat) > 0:
-            initial_reference_gpdf = pd.concat(to_concat, axis=0).sort_values(by="ts").reset_index(drop=True)
-        else:
-            initial_reference_gpdf = gpd.GeoDataFrame()
-            print("No valid data to concatenate for trip_id:", e["trip_id"], e["section_id"])   
+        initial_reference_gpdf = pd.concat([start_initial_ends_gpdf, initial_reference_gpdf, end_initial_ends_gpdf], axis=0).sort_values(by="ts").reset_index(drop=True)
         print(f"CONCAT: {include_ends=}, after concatenating {len(initial_reference_gpdf)=}")
     if len(initial_reference_gpdf.columns) > 1:
         initial_reference_gpdf["fmt_time"] = initial_reference_gpdf.ts.apply(lambda ts: arrow.get(ts).to(tz))
@@ -1290,10 +1266,7 @@ def ref_ends_single(e, dist_threshold, device, tz="UTC"):
         add_gt_error_projection(new_location_df_u, utm_gt_linestring)
         new_location_df["gt_distance"] = new_location_df_u.gt_distance
         new_location_df["gt_projection"] = new_location_df_u.gt_projection
-        # `dist_threshold` is a closure variable from the enclosing
-        # `ref_ends_single`, which `DataFrame.query`'s `@` lookup cannot resolve
-        # (it only sees true locals). Use boolean indexing instead.
-        filtered = new_location_df[new_location_df.gt_distance < dist_threshold]
+        filtered = new_location_df.query("gt_distance < @dist_threshold")
         if len(filtered) == 0:
             return gpd.GeoDataFrame([])
         filtered = gpd.GeoDataFrame(filtered).copy()
@@ -1603,7 +1576,7 @@ def final_ref_ensemble(e, dist_threshold=25, tz="UTC", include_ends=False):
 # END: Final ensemble reference construction that uses ground truth
 ####
 
-def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False, device=None):
+def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False, device=None, time_threshold=300):
     fill_gt_linestring(e)
     gt_linestring = e["ground_truth"]["linestring"]
 
@@ -1647,7 +1620,7 @@ def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False, 
             stats = None
     elif function == 'dtw':
         try:
-            ref_df = ref_dtw_gt_with_ends_general(e, tz)
+            ref_df = ref_dtw_gt_with_ends_general(e, tz, time_threshold=time_threshold)
             stats = stats_gen(ref_df, e)
         except Exception as exp_dtw:
             print("Found exception %s while computing dtw_ref_df, skipping" % exp_dtw)
