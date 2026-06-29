@@ -85,7 +85,10 @@ def to_gpdf(location_df):
         location_df, geometry=location_df.apply(
             lambda lr: shp.geometry.Point(lr.longitude, lr.latitude), axis=1))
 
-def get_int_aligned_trajectory(location_df, tz="UTC", filter=False, spaced=False):
+def get_int_aligned_trajectory(location_df, tz="UTC", filter=False, spaced=False,
+                              speed_threshold=60, acceleration_threshold=20,
+                              jerk_threshold=5, max_clear_time=None,
+                              refill_percentage=0.0):
     #check size of location_df
     if len(location_df) == 0:
         return gpd.GeoDataFrame({
@@ -144,9 +147,83 @@ def get_int_aligned_trajectory(location_df, tz="UTC", filter=False, spaced=False
     new_gpdf = new_gpdf.drop_duplicates(subset="ts", keep="first")
     if filter:
         speed_acceleration_jerk(new_gpdf)
-        new_gpdf = new_gpdf[new_gpdf.speed < 60]
-        new_gpdf = new_gpdf[new_gpdf.acceleration < 20]
-        new_gpdf = new_gpdf[new_gpdf.jerk < 5]
+        # Keep the points that satisfy all three physical-plausibility
+        # thresholds; everything else is a candidate for removal. We retain the
+        # removed rows so that, if filtering opens up a large temporal gap, we
+        # can selectively re-add some of them below.
+        keep_mask = (
+            (new_gpdf.speed < speed_threshold)
+            & (new_gpdf.acceleration < acceleration_threshold)
+            & (new_gpdf.jerk < jerk_threshold)
+        )
+        kept_gpdf = new_gpdf[keep_mask]
+        removed_gpdf = new_gpdf[~keep_mask]
+
+        # If filtering left a temporal gap longer than `max_clear_time`, re-add a
+        # fraction (`refill_percentage`) of the points that were removed inside
+        # that gap. Every removed point is, by definition, "bad", so we cannot
+        # cherry-pick the genuinely good ones. Instead we rank the removed points
+        # into three tiers by how many of the harshest constraints they still
+        # satisfy and randomize the pick within each tier, only dropping to a
+        # worse tier when a better one cannot supply enough points:
+        #   1. meets both the acceleration and jerk targets
+        #   2. meets only the jerk target
+        #   3. meets neither target
+        if (max_clear_time is not None and refill_percentage > 0
+                and len(removed_gpdf) > 0 and len(kept_gpdf) > 1):
+            kept_sorted = kept_gpdf.sort_values(by="ts")
+            kept_ts = list(kept_sorted.ts)
+            refill_indices = []
+            for i in range(1, len(kept_ts)):
+                prev_ts = kept_ts[i - 1]
+                curr_ts = kept_ts[i]
+                if curr_ts - prev_ts <= max_clear_time:
+                    continue
+                gap_removed = removed_gpdf[
+                    (removed_gpdf.ts > prev_ts) & (removed_gpdf.ts < curr_ts)]
+                removed_count = len(gap_removed)
+                if removed_count == 0:
+                    continue
+                n_to_add = int(round(refill_percentage * removed_count))
+                if n_to_add < 1:
+                    continue
+                n_to_add = min(n_to_add, removed_count)
+
+                meets_both = gap_removed[
+                    (gap_removed.acceleration < acceleration_threshold)
+                    & (gap_removed.jerk < jerk_threshold)]
+                meets_jerk = gap_removed[
+                    (gap_removed.acceleration >= acceleration_threshold)
+                    & (gap_removed.jerk < jerk_threshold)]
+                meets_none = gap_removed[
+                    gap_removed.jerk >= jerk_threshold]
+
+                chosen = []
+                # Tier 1: prefer points that meet both targets.
+                if n_to_add <= len(meets_both):
+                    chosen.extend(random.sample(list(meets_both.index), n_to_add))
+                else:
+                    chosen.extend(list(meets_both.index))
+                    remaining = n_to_add - len(meets_both)
+                    # Tier 2: fall back to points that meet only the jerk target.
+                    if remaining <= len(meets_jerk):
+                        chosen.extend(random.sample(list(meets_jerk.index), remaining))
+                    else:
+                        chosen.extend(list(meets_jerk.index))
+                        remaining -= len(meets_jerk)
+                        # Tier 3: last resort, points that meet no target.
+                        remaining = min(remaining, len(meets_none))
+                        chosen.extend(random.sample(list(meets_none.index), remaining))
+                refill_indices.extend(chosen)
+            if refill_indices:
+                kept_gpdf = pd.concat(
+                    [kept_gpdf, removed_gpdf.loc[refill_indices]])
+        new_gpdf = kept_gpdf.sort_values(by="ts").reset_index(drop=True)
+        # Re-adding points changes the neighbor spacing, so the speed,
+        # acceleration and jerk computed on the dense set are now stale; recompute
+        # them on the final, filtered-and-refilled trajectory.
+        if len(new_gpdf) > 3:
+            speed_acceleration_jerk(new_gpdf)
     return new_gpdf
 
 
@@ -664,13 +741,143 @@ def douglas_peucker(e, tz="UTC", dist_threshold=10, interp=2, points_per_second=
     
 
 
-def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, time_threshold=300):
+def _solve_const_accel_offsets(fractions, v0, v1, T):
+    """
+    Map each distance fraction in (0, 1] to a time offset in (0, T] under a
+    constant acceleration that carries the speed from `v0` to `v1` across the
+    window of length `T`. A point that is a fraction `f` of the way along the
+    (fixed) path is placed at the time when the constant-acceleration model has
+    covered fraction `f` of its own travelled distance, which keeps the exit at
+    exactly `T` while following the v0 -> v1 speed shape.
+    """
+    a = (v1 - v0) / T
+    offsets = []
+    for f in fractions:
+        if abs(a) < 1e-9:
+            offsets.append(f * T)
+        else:
+            disc = max(v0 * v0 * (1.0 - f) + f * v1 * v1, 0.0)
+            offsets.append((-v0 + math.sqrt(disc)) / a)
+    return offsets, a
+
+
+def _assign_secondpass_timestamps(entry_pos, run_positions, exit_pos,
+                                  t_entry, t_exit, v0, a0, v1, a1, jerk_limit):
+    """
+    Assign timestamps to the fixed `run_positions` that bridge the gap between
+    two firstpass points. The positions are not moved; only their timestamps are
+    chosen so the implied motion is a constant-acceleration transition from the
+    entry speed `v0` to the exit speed `v1` over the fixed window
+    [`t_entry`, `t_exit`].
+
+    The only acceleration discontinuities are at the two ends: from the entry
+    point's acceleration `a0` into the run's constant acceleration, and from the
+    run back out to the exit point's acceleration `a1`. If either transition
+    would exceed `jerk_limit`, the corresponding boundary interval is lengthened
+    to the smallest duration that keeps the jerk within the limit (the single
+    "adjusting step") and the interior is rescaled into the remaining window so
+    the curve still lands on the exit point at `t_exit`.
+    """
+    N = len(run_positions)
+    T = t_exit - t_entry
+    if N == 0:
+        return []
+    uniform = [t_entry + (n + 1) * (T / (N + 1)) for n in range(N)]
+    if T <= 0 or not np.all(np.isfinite([v0, a0, v1, a1])):
+        return uniform
+
+    seq = [entry_pos] + list(run_positions) + [exit_pos]
+    cum = [0.0]
+    for k in range(1, len(seq)):
+        cum.append(cum[-1] + dtw.calDistance(seq[k - 1], seq[k]))
+    D = cum[-1]
+    if D <= 0:
+        return uniform
+
+    fractions = [cum[k] / D for k in range(1, N + 1)]
+    base_offsets, a = _solve_const_accel_offsets(fractions, v0, v1, T)
+    bounds = [0.0] + base_offsets + [T]
+    durations = [bounds[i + 1] - bounds[i] for i in range(len(bounds) - 1)]
+    if any(d <= 0 for d in durations):
+        return uniform
+
+    # Lengthen the first/last interval only when its jerk exceeds the limit.
+    entry_min = 0.0
+    if abs((a - a0) / durations[0]) > jerk_limit:
+        entry_min = abs(a - a0) / jerk_limit
+    exit_min = 0.0
+    if abs((a1 - a) / durations[-1]) > jerk_limit:
+        exit_min = abs(a1 - a) / jerk_limit
+
+    new_first = max(durations[0], entry_min)
+    new_last = max(durations[-1], exit_min)
+    extra = (new_first - durations[0]) + (new_last - durations[-1])
+    if extra > 0:
+        interior = durations[1:-1]
+        interior_sum = sum(interior)
+        if interior_sum > 0 and extra < interior_sum:
+            scale = (interior_sum - extra) / interior_sum
+            durations = [new_first] + [d * scale for d in interior] + [new_last]
+        else:
+            # Not enough interior slack (or no interior point): keep the stretch
+            # request and let the renormalization below rescale to the window, so
+            # the jerk limit is then honored only approximately.
+            durations = [new_first] + interior + [new_last]
+
+    durations = [max(d, 1e-6) for d in durations]
+    total = sum(durations)
+    durations = [d * (T / total) for d in durations]
+
+    offs = []
+    acc = 0.0
+    for d in durations[:-1]:
+        acc += d
+        offs.append(t_entry + acc)
+    return offs
+
+
+def _constant_velocity_fill(start_pos, run_positions, t_start, t_stop):
+    """
+    Fill an end-of-trajectory run (which has no following firstpass point) by
+    spreading the fixed `run_positions` between `t_start` and `t_stop` at
+    constant velocity, i.e. each timestamp is proportional to that point's
+    cumulative distance from `start_pos`. The final run point lands on `t_stop`.
+    """
+    N = len(run_positions)
+    span = t_stop - t_start
+    uniform = [t_start + (n + 1) * (span / (N + 1)) for n in range(N)]
+    if N == 0:
+        return []
+    seq = [start_pos] + list(run_positions)
+    cum = [0.0]
+    for k in range(1, len(seq)):
+        cum.append(cum[-1] + dtw.calDistance(seq[k - 1], seq[k]))
+    D = cum[-1]
+    if D <= 0 or span <= 0:
+        return uniform
+    return [t_start + (cum[k] / D) * span for k in range(1, N + 1)]
+
+
+def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, time_threshold=300, jerk_limit=5,
+                                 speed_threshold=60, acceleration_threshold=20,
+                                 jerk_threshold=5, max_clear_time=None,
+                                 refill_percentage=0.0):
     fill_gt_linestring(e)
     a_pts = emd.to_geo_df(e["temporal_control"]["android"]["location_df"])
     i_pts = emd.to_geo_df(e["temporal_control"]["ios"]["location_df"])
     if interp >= 1:
-        new_a_pts = get_int_aligned_trajectory(a_pts, tz, True, True)
-        new_i_pts = get_int_aligned_trajectory(i_pts, tz, True, True)
+        new_a_pts = get_int_aligned_trajectory(a_pts, tz, True, True,
+                                               speed_threshold=speed_threshold,
+                                               acceleration_threshold=acceleration_threshold,
+                                               jerk_threshold=jerk_threshold,
+                                               max_clear_time=max_clear_time,
+                                               refill_percentage=refill_percentage)
+        new_i_pts = get_int_aligned_trajectory(i_pts, tz, True, True,
+                                               speed_threshold=speed_threshold,
+                                               acceleration_threshold=acceleration_threshold,
+                                               jerk_threshold=jerk_threshold,
+                                               max_clear_time=max_clear_time,
+                                               refill_percentage=refill_percentage)
     else:
         new_a_pts = a_pts
         new_i_pts = i_pts
@@ -822,29 +1029,70 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
         #Average the postions and time stamps
     # print(np.histogram(ranges, bins=10))
 
+    # Speed and acceleration at each firstpass point, used to shape the
+    # second-pass transition curves. Computed now, while `points`/`timestamps`
+    # still hold only the (mutually aligned) firstpass entries, and keyed by
+    # ground-truth index through `firstpass_idxes`.
+    fp_speed = {}
+    if len(points) > 3:
+        try:
+            fp_gpdf = gpd.GeoDataFrame(data={"ts": list(timestamps)},
+                                       geometry=list(points))
+            speed_acceleration_jerk(fp_gpdf)
+            for pos, gt_idx in enumerate(firstpass_idxes):
+                fp_speed[gt_idx] = (float(fp_gpdf.speed.iloc[pos]),
+                                    float(fp_gpdf.acceleration.iloc[pos]))
+        except Exception as exp_fp:
+            print("Could not compute firstpass speed/accel for second-pass "
+                  "shaping, falling back to uniform: %s" % exp_fp)
+            fp_speed = {}
+
     #Second pass
     for idx_list in secondpass_idxes:
         first_idx = idx_list[0]
         timeseries_id = timeseries_ids[first_idx-1]
 
-        # line = shp.geometry.LineString([points[first_idx-1]] + [gt_pts[idx] for idx in idx_list])
-        # distances = [line.line_locate_point(gt_pts[idx]) for idx in idx_list]
-        # tot = line.length
-
         if first_idx >= len(timestamps):
-            first_stamp = timestamps[-2]
-            last_stamp = timestamps[-1]
-            step = (last_stamp - first_stamp) / (len(idx_list) + 1)
-            timestamps[-1] = first_stamp + step
-            first_stamp += step
-            last_stamp += step
-        else:
-            first_stamp = timestamps[first_idx - 1]
-            last_stamp = timestamps[first_idx]
-        step = (last_stamp - first_stamp) / (len(idx_list) + 1)
+            # End-of-trajectory run: there is no firstpass point after it. Fill
+            # from the last placed point to `end_ts` at constant velocity. If
+            # there is no room left (end_ts <= last stamp), fall back to the
+            # legacy timestamps[-2] uniform scheme.
+            start_stamp = timestamps[-1]
+            if end_ts > start_stamp:
+                start_pos = points[-1]
+                new_stamps = _constant_velocity_fill(
+                    start_pos, [gt_pts[i] for i in idx_list], start_stamp, end_ts)
+                for n in range(len(idx_list)):
+                    points.insert(idx_list[n], gt_pts[idx_list[n]])
+                    timestamps.insert(idx_list[n], new_stamps[n])
+                    timeseries_ids.insert(idx_list[n], timeseries_id)
+            else:
+                first_stamp = timestamps[-2]
+                last_stamp = timestamps[-1]
+                step = (last_stamp - first_stamp) / (len(idx_list) + 1)
+                timestamps[-1] = first_stamp + step
+                first_stamp += step
+                for n in range(len(idx_list)):
+                    points.insert(idx_list[n], gt_pts[idx_list[n]])
+                    timestamps.insert(idx_list[n], first_stamp + ((n + 1) * step))
+                    timeseries_ids.insert(idx_list[n], timeseries_id)
+            continue
+
+        # Interior run: build a constant-acceleration transition curve between
+        # the bracketing firstpass points, with jerk-limited adjusting steps at
+        # the entry and exit.
+        first_stamp = timestamps[first_idx - 1]
+        last_stamp = timestamps[first_idx]
+        entry_pos = points[first_idx - 1]
+        exit_pos = points[first_idx]
+        v0, a0 = fp_speed.get(first_idx - 1, (np.nan, np.nan))
+        v1, a1 = fp_speed.get(idx_list[-1] + 1, (np.nan, np.nan))
+        new_stamps = _assign_secondpass_timestamps(
+            entry_pos, [gt_pts[i] for i in idx_list], exit_pos,
+            first_stamp, last_stamp, v0, a0, v1, a1, jerk_limit)
         for n in range(len(idx_list)):
             points.insert(idx_list[n], gt_pts[idx_list[n]])
-            timestamps.insert(idx_list[n], first_stamp + ((n + 1) * step))
+            timestamps.insert(idx_list[n], new_stamps[n])
             timeseries_ids.insert(idx_list[n], timeseries_id)
             
             
