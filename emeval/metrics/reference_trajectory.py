@@ -714,32 +714,7 @@ def ref_gt_general(e, b_merge_fn, dist_threshold, tz="UTC", include_ends=False):
         return initial_reference_gpdf
     else:
         return gpd.GeoDataFrame()
-    
-def douglas_peucker(e, tz="UTC", dist_threshold=10, interp=2, points_per_second=1):
-    fill_gt_linestring(e)
-    a_pts = emd.to_geo_df(e["temporal_control"]["android"]["location_df"])
-    i_pts = emd.to_geo_df(e["temporal_control"]["ios"]["location_df"])
-    if interp >= 1:
-        new_a_pts = get_int_aligned_trajectory(a_pts, tz, True, True)
-        new_i_pts = get_int_aligned_trajectory(i_pts, tz, True, True)
-    else:
-        new_a_pts = a_pts
-        new_i_pts = i_pts
-    a_pts_seq = new_a_pts["geometry"].to_list()
-    i_pts_seq = new_i_pts["geometry"].to_list()
-
-    start_ts = min(new_a_pts["ts"].iloc[0], new_i_pts["ts"].iloc[0])
-    end_ts = max(new_a_pts["ts"].iloc[-1], new_i_pts["ts"].iloc[-1])
-
-
-    # Get points at 1 second intervals along the ground truth linestring
-    if interp == 0 or interp == 2:
-        gt_pts = interpolate_points_along_linestring(e["ground_truth"]["linestring"], time_interval=(end_ts-start_ts), points_per_second=points_per_second)
-    else:
-        gt_pts = [shp.geometry.Point(coord) for coord in list(e["ground_truth"]["linestring"].coords)]
-
-    
-
+ 
 
 def _solve_const_accel_offsets(fractions, v0, v1, T):
     """
@@ -761,8 +736,23 @@ def _solve_const_accel_offsets(fractions, v0, v1, T):
     return offsets, a
 
 
+# Toggle from the notebook with
+#   emeval.metrics.reference_trajectory.DEBUG_SECONDPASS = True
+# to get a detailed trace of every second-pass timestamp assignment. Set
+# DEBUG_SECONDPASS_ENTRY to a ground-truth firstpass index to only print the run
+# that starts right after that index (None prints every run).
+DEBUG_SECONDPASS = False
+DEBUG_SECONDPASS_ENTRY = None
+
+
+def _sp_debug(active, msg):
+    if active:
+        print("SECONDPASS_DBG: " + msg)
+
+
 def _assign_secondpass_timestamps(entry_pos, run_positions, exit_pos,
-                                  t_entry, t_exit, v0, a0, v1, a1, jerk_limit):
+                                  t_entry, t_exit, v0, a0, v1, a1, jerk_limit,
+                                  debug_tag=None):
     """
     Assign timestamps to the fixed `run_positions` that bridge the gap between
     two firstpass points. The positions are not moved; only their timestamps are
@@ -777,13 +767,29 @@ def _assign_secondpass_timestamps(entry_pos, run_positions, exit_pos,
     to the smallest duration that keeps the jerk within the limit (the single
     "adjusting step") and the interior is rescaled into the remaining window so
     the curve still lands on the exit point at `t_exit`.
+
+    Pass `debug_tag` (e.g. the bracketing firstpass ground-truth index) to label
+    the diagnostic printouts emitted when `DEBUG_SECONDPASS` is enabled.
     """
     N = len(run_positions)
     T = t_exit - t_entry
+
+    active = DEBUG_SECONDPASS and (
+        DEBUG_SECONDPASS_ENTRY is None or DEBUG_SECONDPASS_ENTRY == debug_tag)
+    if active:
+        _sp_debug(active, "==== run tag=%s N=%d ====" % (debug_tag, N))
+        _sp_debug(active, "window: t_entry=%.6f t_exit=%.6f T=%.6f" %
+                  (t_entry, t_exit, T))
+        _sp_debug(active, "boundary kinematics: v0=%s a0=%s v1=%s a1=%s "
+                  "jerk_limit=%s" % (v0, a0, v1, a1, jerk_limit))
+
     if N == 0:
         return []
     uniform = [t_entry + (n + 1) * (T / (N + 1)) for n in range(N)]
     if T <= 0 or not np.all(np.isfinite([v0, a0, v1, a1])):
+        _sp_debug(active, "FALLBACK uniform: T<=0 or non-finite kinematics "
+                  "(T=%s, finite=%s) -> %s" %
+                  (T, np.all(np.isfinite([v0, a0, v1, a1])), uniform))
         return uniform
 
     seq = [entry_pos] + list(run_positions) + [exit_pos]
@@ -792,22 +798,41 @@ def _assign_secondpass_timestamps(entry_pos, run_positions, exit_pos,
         cum.append(cum[-1] + dtw.calDistance(seq[k - 1], seq[k]))
     D = cum[-1]
     if D <= 0:
+        _sp_debug(active, "FALLBACK uniform: total path length D=%s <= 0 -> %s" %
+                  (D, uniform))
         return uniform
 
     fractions = [cum[k] / D for k in range(1, N + 1)]
     base_offsets, a = _solve_const_accel_offsets(fractions, v0, v1, T)
     bounds = [0.0] + base_offsets + [T]
     durations = [bounds[i + 1] - bounds[i] for i in range(len(bounds) - 1)]
+    if active:
+        _sp_debug(active, "path: D=%.6f cum=%s" % (D, _fmt_list(cum)))
+        _sp_debug(active, "fractions=%s" % _fmt_list(fractions))
+        _sp_debug(active, "const-accel a=%.6g base_offsets=%s" %
+                  (a, _fmt_list(base_offsets)))
+        _sp_debug(active, "bounds=%s" % _fmt_list(bounds))
+        _sp_debug(active, "raw durations=%s (min=%.6g max=%.6g)" %
+                  (_fmt_list(durations), min(durations), max(durations)))
     if any(d <= 0 for d in durations):
+        _sp_debug(active, "FALLBACK uniform: non-positive duration in %s -> %s" %
+                  (_fmt_list(durations), uniform))
         return uniform
 
     # Lengthen the first/last interval only when its jerk exceeds the limit.
+    entry_jerk = abs((a - a0) / durations[0])
     entry_min = 0.0
-    if abs((a - a0) / durations[0]) > jerk_limit:
-        entry_min = abs(a - a0) / jerk_limit
+    # if entry_jerk > jerk_limit:
+        # entry_min = abs(a - a0) / jerk_limit
+    exit_jerk = abs((a1 - a) / durations[-1])
     exit_min = 0.0
-    if abs((a1 - a) / durations[-1]) > jerk_limit:
-        exit_min = abs(a1 - a) / jerk_limit
+    # if exit_jerk > jerk_limit:
+        # exit_min = abs(a1 - a) / jerk_limit
+    if active:
+        _sp_debug(active, "entry jerk=%.6g (limit=%s) -> entry_min=%.6g" %
+                  (entry_jerk, jerk_limit, entry_min))
+        _sp_debug(active, "exit  jerk=%.6g (limit=%s) -> exit_min=%.6g" %
+                  (exit_jerk, jerk_limit, exit_min))
 
     new_first = max(durations[0], entry_min)
     new_last = max(durations[-1], exit_min)
@@ -818,22 +843,86 @@ def _assign_secondpass_timestamps(entry_pos, run_positions, exit_pos,
         if interior_sum > 0 and extra < interior_sum:
             scale = (interior_sum - extra) / interior_sum
             durations = [new_first] + [d * scale for d in interior] + [new_last]
+            _sp_debug(active, "stretch: extra=%.6g scaled interior by %.6g" %
+                      (extra, scale))
         else:
             # Not enough interior slack (or no interior point): keep the stretch
             # request and let the renormalization below rescale to the window, so
             # the jerk limit is then honored only approximately.
             durations = [new_first] + interior + [new_last]
+            _sp_debug(active, "stretch: extra=%.6g but interior_sum=%.6g "
+                      "insufficient; jerk limit only approximate" %
+                      (extra, interior_sum))
 
     durations = [max(d, 1e-6) for d in durations]
     total = sum(durations)
     durations = [d * (T / total) for d in durations]
+    if active:
+        _sp_debug(active, "final durations=%s (min=%.6g max=%.6g sum=%.6g)" %
+                  (_fmt_list(durations), min(durations), max(durations),
+                   sum(durations)))
 
     offs = []
     acc = 0.0
     for d in durations[:-1]:
         acc += d
         offs.append(t_entry + acc)
+
+    if active:
+        _sp_debug(active, "offsets (timestamps)=%s" % _fmt_list(offs))
+        _report_secondpass_kinematics(active, seq, [t_entry] + offs + [t_exit])
     return offs
+
+
+def _fmt_list(values, max_items=None):
+    """Format a numeric list for debug printing, showing all values."""
+    def f(x):
+        try:
+            return "%.6g" % x
+        except (TypeError, ValueError):
+            return str(x)
+    return "[" + ", ".join(f(v) for v in values) + "]"
+
+
+def _report_secondpass_kinematics(active, seq, stamps):
+    """Recompute the per-segment speed / acceleration / jerk implied by the
+    assigned `stamps` for the ordered points `seq` (entry, run..., exit) and
+    print the peak magnitudes plus a per-step table, so the caller can see
+    exactly where the spikes originate."""
+    if not active:
+        return
+    n = len(seq)
+    if n != len(stamps) or n < 2:
+        _sp_debug(active, "kinematics: cannot report (len(seq)=%d len(stamps)=%d)"
+                  % (n, len(stamps)))
+        return
+    dists = [dtw.calDistance(seq[k - 1], seq[k]) for k in range(1, n)]
+    dts = [stamps[k] - stamps[k - 1] for k in range(1, n)]
+    speeds = []
+    for d, dt in zip(dists, dts):
+        speeds.append(d / dt if dt > 0 else float("inf"))
+    accels = []
+    for k in range(1, len(speeds)):
+        dt = stamps[k + 1] - stamps[k - 1]
+        accels.append((speeds[k] - speeds[k - 1]) / dt if dt > 0
+                      else float("inf"))
+    jerks = []
+    for k in range(1, len(accels)):
+        dt = stamps[k + 2] - stamps[k]
+        jerks.append((accels[k] - accels[k - 1]) / dt if dt > 0
+                     else float("inf"))
+
+    def peak(xs):
+        finite = [abs(x) for x in xs if np.isfinite(x)]
+        return max(finite) if finite else float("inf")
+
+    _sp_debug(active, "kinematics peaks: |speed|max=%.6g |accel|max=%.6g "
+              "|jerk|max=%.6g" % (peak(speeds), peak(accels), peak(jerks)))
+    _sp_debug(active, "  dt   =%s" % _fmt_list(dts))
+    _sp_debug(active, "  dist =%s" % _fmt_list(dists))
+    _sp_debug(active, "  speed=%s" % _fmt_list(speeds))
+    _sp_debug(active, "  accel=%s" % _fmt_list(accels))
+    _sp_debug(active, "  jerk =%s" % _fmt_list(jerks))
 
 
 def _constant_velocity_fill(start_pos, run_positions, t_start, t_stop):
@@ -1089,7 +1178,8 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
         v1, a1 = fp_speed.get(idx_list[-1] + 1, (np.nan, np.nan))
         new_stamps = _assign_secondpass_timestamps(
             entry_pos, [gt_pts[i] for i in idx_list], exit_pos,
-            first_stamp, last_stamp, v0, a0, v1, a1, jerk_limit)
+            first_stamp, last_stamp, v0, a0, v1, a1, jerk_limit,
+            debug_tag=first_idx)
         for n in range(len(idx_list)):
             points.insert(idx_list[n], gt_pts[idx_list[n]])
             timestamps.insert(idx_list[n], new_stamps[n])
