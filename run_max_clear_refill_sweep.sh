@@ -3,6 +3,7 @@
 #SBATCH --mail-user=kinjal.govil@nlr.gov
 #SBATCH --mail-type=ALL
 #SBATCH --nodes=1
+#SBATCH --mem=500G
 # Execute get_int_aligned_max_clear_refill_sweep.ipynb. The notebook is executed
 # in order, and the executed result is written to
 # get_int_aligned_max_clear_refill_sweep.executed.ipynb so the computed outputs are preserved.
