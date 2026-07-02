@@ -785,7 +785,13 @@ def _assign_secondpass_timestamps(entry_pos, run_positions, exit_pos,
 
     if N == 0:
         return []
-    uniform = [t_entry + (n + 1) * (T / (N + 1)) for n in range(N)]
+    # Every list returned by this function holds offsets relative to `t_entry`
+    # (i.e. in [0, T]), never absolute timestamps. Keeping the offsets local
+    # preserves their fine (sub-millisecond) structure; adding them onto the
+    # ~1.5e9 absolute Unix-epoch base at construction time would quantize them
+    # onto a ~2.4e-7 s grid and inject the noise that the finite-difference
+    # acceleration/jerk then amplify by orders of magnitude.
+    uniform = [(n + 1) * (T / (N + 1)) for n in range(N)]
     if T <= 0 or not np.all(np.isfinite([v0, a0, v1, a1])):
         _sp_debug(active, "FALLBACK uniform: T<=0 or non-finite kinematics "
                   "(T=%s, finite=%s) -> %s" %
@@ -866,11 +872,14 @@ def _assign_secondpass_timestamps(entry_pos, run_positions, exit_pos,
     acc = 0.0
     for d in durations[:-1]:
         acc += d
-        offs.append(t_entry + acc)
+        offs.append(acc)
 
     if active:
-        _sp_debug(active, "offsets (timestamps)=%s" % _fmt_list(offs))
-        _report_secondpass_kinematics(active, seq, [t_entry] + offs + [t_exit])
+        _sp_debug(active, "offsets (run-local, rel. t_entry)=%s" % _fmt_list(offs))
+        # Report on the precise local time axis ([0, T]); this is what the
+        # downstream kinematics actually see now that timestamps keep their
+        # local precision, so the acceleration here should be ~constant.
+        _report_secondpass_kinematics(active, seq, [0.0] + offs + [T])
     return offs
 
 
@@ -934,7 +943,11 @@ def _constant_velocity_fill(start_pos, run_positions, t_start, t_stop):
     """
     N = len(run_positions)
     span = t_stop - t_start
-    uniform = [t_start + (n + 1) * (span / (N + 1)) for n in range(N)]
+    # Offsets are returned relative to `t_start` (i.e. in [0, span]) so the
+    # caller can add them to a small local time base and avoid the catastrophic
+    # float cancellation that occurs when tiny offsets are added directly onto a
+    # ~1.5e9 absolute Unix-epoch base.
+    uniform = [(n + 1) * (span / (N + 1)) for n in range(N)]
     if N == 0:
         return []
     seq = [start_pos] + list(run_positions)
@@ -944,7 +957,7 @@ def _constant_velocity_fill(start_pos, run_positions, t_start, t_stop):
     D = cum[-1]
     if D <= 0 or span <= 0:
         return uniform
-    return [t_start + (cum[k] / D) * span for k in range(1, N + 1)]
+    return [(cum[k] / D) * span for k in range(1, N + 1)]
 
 
 def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, time_threshold=300, jerk_limit=5,
@@ -1052,6 +1065,32 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
         matched_points_centroid = shp.geometry.MultiPoint(matched_points).centroid
         return matched_points_centroid, matched_ts_mean
 
+    # Helper to check for timestamp collisions between successive firstpass points
+    # as they are assigned, avoiding any risk of index misalignment between lists.
+    def _check_fp_collision(cur_idx, prev_idx, offset, prev_offset):
+        if prev_idx >= 0 and timestamps[-1] - timestamps[-2] <= 0:
+            gt_prev = prev_idx
+            gt_cur = cur_idx
+            _, prev_a_time = get_centriod_and_ts(gt_prev, 1)
+            _, prev_i_time = get_centriod_and_ts(gt_prev, 2)
+            _, cur_a_time = get_centriod_and_ts(gt_cur, 1)
+            _, cur_i_time = get_centriod_and_ts(gt_cur, 2)
+            print("FP_COLLISION_DBG: firstpass collision found inside assignment loop!")
+            print("  fp_pos %d->%d  gt_idx %d->%d  ts %.6f->%.6f (d=%.6g) offset=%.6g prev_offset=%.6g"
+                  % (len(timestamps) - 2, len(timestamps) - 1, gt_prev, gt_cur,
+                     timestamps[-2], timestamps[-1],
+                     timestamps[-1] - timestamps[-2], offset, prev_offset))
+            print("     groups_a_prev[%d]=%s  groups_a_prev_t=%.6f  groups_a[%d]=%s  groups_a_t=%.6f  (equal=%s)"
+                  % (gt_prev, groups_a[gt_prev], prev_a_time, gt_cur, groups_a[gt_cur], cur_a_time,
+                     groups_a[gt_prev] == groups_a[gt_cur]))
+            print("     groups_i_prev[%d]=%s  groups_i_prev_t=%.6f  groups_i[%d]=%s  groups_i_t=%.6f  (equal=%s)"
+                  % (gt_prev, groups_i[gt_prev], prev_i_time, gt_cur, groups_i[gt_cur], cur_i_time,
+                     groups_i[gt_prev] == groups_i[gt_cur]))
+            # Also show the gt indices skipped between the two firstpass points,
+            # i.e. the second-pass run (if any) sitting between them.
+            skipped = list(range(gt_prev + 1, gt_cur))
+            print("     gt indices between them (second-pass run): %s" % skipped)
+
     #First pass
     points = []
     timestamps = []
@@ -1059,6 +1098,8 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
     # ranges = []
     offset = 0
     timeseries_id = 0 # 0 for dtw, 1 for android, 2 for ios
+    prev_idx = -1
+    prev_offset = 0
     for idx in firstpass_idxes:
         #Get unique elements
         matched_points_centroid_a, matched_ts_mean_a = get_centriod_and_ts(idx, 1)
@@ -1067,56 +1108,66 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
         #Outlier removal
         # ranges.append(max(matched_ts_a + matched_ts_i)-min(matched_ts_a + matched_ts_i))
         # if len(matched_points) == 2:
+        # Decide which stream drives this firstpass point: the spatially closer
+        # of android (1) / ios (2) when the two streams disagree in time by more
+        # than the threshold, otherwise the combined dtw average (0).
         if abs(matched_ts_mean_a - matched_ts_mean_i) > time_threshold:
             if dtw.calDistance(gt_pts[idx], matched_points_centroid_a) > dtw.calDistance(gt_pts[idx], matched_points_centroid_i):
-                # points.append(matched_points_i_centroid)
-                if timeseries_id != 2:
-                    burn, prev_new = get_centriod_and_ts(idx-1, 2)
-                    burn, prev_old = get_centriod_and_ts(idx-1, timeseries_id)
-                    offset += prev_old - prev_new
-                    timeseries_id = 2
-
-                points.append(gt_pts[idx])
-                timestamps.append(matched_ts_mean_i + offset)
-                timeseries_ids.append(2)
-                continue
+                chosen_id = 2
             else:
-                # points.append(matched_points_a_centroid)
-                if timeseries_id != 1:
-                    burn, prev_new = get_centriod_and_ts(idx-1, 1)
-                    burn, prev_old = get_centriod_and_ts(idx-1, timeseries_id)
-                    offset += prev_old - prev_new
-                    timeseries_id = 1
-                points.append(gt_pts[idx])
-                timestamps.append(matched_ts_mean_a + offset)
-                timeseries_ids.append(1)
-                continue
-        # if len(matched_points) > 2:
-        #     first = np.percentile(matched_ts, 25)
-        #     third = np.percentile(matched_ts, 75)
-        #     iqr = third - first
-        #     outliers = [pt for pt in matched_ts if pt < (first - iqr) or pt > (third + iqr)]
-        #     for pt in outliers:
-        #         matched_points.remove(matched_points[matched_ts.index(pt)])
-        #         matched_ts.remove(pt)
-            
-            
-        
+                chosen_id = 1
+        else:
+            chosen_id = 0
 
-        #Average remaining points
-        if timeseries_id != 0:
-            burn, prev_new = get_centriod_and_ts(idx-1, 0)
-            burn, prev_old = get_centriod_and_ts(idx-1, timeseries_id)
+        # A concrete stream (android=1 / ios=2) is "constant" at this index when
+        # its DTW match set is identical to the previous ground-truth index's,
+        # i.e. it did not advance (a cone in that stream). Pinning a timestamp to
+        # a constant stream through the continuity offset collapses it onto the
+        # previous point's timestamp and produces a zero gap.
+        def _series_constant(sid):
+            return sid in (1, 2) and idx > 0 and (
+                (groups_i if sid == 2 else groups_a)[idx] ==
+                (groups_i if sid == 2 else groups_a)[idx - 1])
+
+        # Guard 1: do not switch onto a stream that is constant here; stay on the
+        # current (still forward-moving) stream instead.
+        if chosen_id != timeseries_id and _series_constant(chosen_id):
+            chosen_id = timeseries_id
+
+        # Guard 2: if the selected stream is itself constant here, force the
+        # combined dtw average (0), which keeps advancing as long as either
+        # stream is still moving.
+        if _series_constant(chosen_id):
+            chosen_id = 0
+
+        # Apply the continuity offset whenever the active stream changes.
+        if chosen_id != timeseries_id:
+            burn, prev_new = get_centriod_and_ts(idx - 1, chosen_id)
+            burn, prev_old = get_centriod_and_ts(idx - 1, timeseries_id)
             offset += prev_old - prev_new
-            timeseries_id = 0
-        # centroid = shp.geometry.MultiPoint([matched_points_centroid_a, matched_points_centroid_i]).centroid
-        ts = (matched_ts_mean_a + matched_ts_mean_i) / 2
+            timeseries_id = chosen_id
+
+        if chosen_id == 1:
+            ts = matched_ts_mean_a
+        elif chosen_id == 2:
+            ts = matched_ts_mean_i
+        else:
+            ts = (matched_ts_mean_a + matched_ts_mean_i) / 2
         # points.append(centroid)
         points.append(gt_pts[idx])
         timestamps.append(ts + offset)
-        timeseries_ids.append(0)
+        timeseries_ids.append(chosen_id)
+        _check_fp_collision(idx, prev_idx, offset, prev_offset)
+        prev_idx = idx
+        prev_offset = offset
         #Average the postions and time stamps
     # print(np.histogram(ranges, bins=10))
+
+    # High-precision local time axis, in seconds since `start_ts`. Kept in
+    # lock-step with `timestamps` through the second pass. Differencing this
+    # small-magnitude axis (instead of the ~1.5e9 absolute epoch) is what keeps
+    # the finite-difference speed/acceleration/jerk free of roundoff noise.
+    ts_local = [t - start_ts for t in timestamps]
 
     # Speed and acceleration at each firstpass point, used to shape the
     # second-pass transition curves. Computed now, while `points`/`timestamps`
@@ -1125,7 +1176,7 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
     fp_speed = {}
     if len(points) > 3:
         try:
-            fp_gpdf = gpd.GeoDataFrame(data={"ts": list(timestamps)},
+            fp_gpdf = gpd.GeoDataFrame(data={"ts_local": list(ts_local)},
                                        geometry=list(points))
             speed_acceleration_jerk(fp_gpdf)
             for pos, gt_idx in enumerate(firstpass_idxes):
@@ -1149,21 +1200,33 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
             start_stamp = timestamps[-1]
             if end_ts > start_stamp:
                 start_pos = points[-1]
-                new_stamps = _constant_velocity_fill(
+                rel_offsets = _constant_velocity_fill(
                     start_pos, [gt_pts[i] for i in idx_list], start_stamp, end_ts)
+                base_local = start_stamp - start_ts
                 for n in range(len(idx_list)):
                     points.insert(idx_list[n], gt_pts[idx_list[n]])
-                    timestamps.insert(idx_list[n], new_stamps[n])
+                    timestamps.insert(idx_list[n], start_stamp + rel_offsets[n])
+                    ts_local.insert(idx_list[n], base_local + rel_offsets[n])
                     timeseries_ids.insert(idx_list[n], timeseries_id)
             else:
                 first_stamp = timestamps[-2]
                 last_stamp = timestamps[-1]
                 step = (last_stamp - first_stamp) / (len(idx_list) + 1)
+                if step == 0:
+                    print("ZERO_STEP_DBG: end-of-trajectory else-branch: "
+                          "timestamps[-2]=%.6f == timestamps[-1]=%.6f, "
+                          "len(idx_list)=%d -> step=0; inserted points will "
+                          "share a timestamp and cause ZeroDivisionError in "
+                          "speed_acceleration_jerk" %
+                          (first_stamp, last_stamp, len(idx_list)))
                 timestamps[-1] = first_stamp + step
+                ts_local[-1] = (first_stamp - start_ts) + step
+                base_local = (first_stamp - start_ts) + step
                 first_stamp += step
                 for n in range(len(idx_list)):
                     points.insert(idx_list[n], gt_pts[idx_list[n]])
                     timestamps.insert(idx_list[n], first_stamp + ((n + 1) * step))
+                    ts_local.insert(idx_list[n], base_local + ((n + 1) * step))
                     timeseries_ids.insert(idx_list[n], timeseries_id)
             continue
 
@@ -1176,13 +1239,25 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
         exit_pos = points[first_idx]
         v0, a0 = fp_speed.get(first_idx - 1, (np.nan, np.nan))
         v1, a1 = fp_speed.get(idx_list[-1] + 1, (np.nan, np.nan))
-        new_stamps = _assign_secondpass_timestamps(
+        # INTERIOR_WINDOW_DBG: the run is placed inside [first_stamp, last_stamp],
+        # the two bracketing firstpass timestamps. If that window is zero/negative
+        # the whole run collapses onto one instant. Report it so we can trace a
+        # zero gap back to its bracket.
+        if last_stamp - first_stamp <= 0:
+            print("INTERIOR_WINDOW_DBG: run idx_list=%s bracketed by "
+                  "timestamps[%d]=%.6f and timestamps[%d]=%.6f -> T=%.6g "
+                  "(v0=%s v1=%s); run will collapse to a single timestamp"
+                  % (idx_list, first_idx - 1, first_stamp, first_idx,
+                     last_stamp, last_stamp - first_stamp, v0, v1))
+        rel_offsets = _assign_secondpass_timestamps(
             entry_pos, [gt_pts[i] for i in idx_list], exit_pos,
             first_stamp, last_stamp, v0, a0, v1, a1, jerk_limit,
             debug_tag=first_idx)
+        base_local = first_stamp - start_ts
         for n in range(len(idx_list)):
             points.insert(idx_list[n], gt_pts[idx_list[n]])
-            timestamps.insert(idx_list[n], new_stamps[n])
+            timestamps.insert(idx_list[n], first_stamp + rel_offsets[n])
+            ts_local.insert(idx_list[n], base_local + rel_offsets[n])
             timeseries_ids.insert(idx_list[n], timeseries_id)
             
             
@@ -1191,11 +1266,27 @@ def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, tim
         return gpd.GeoDataFrame()
 
     gpdf = gpd.GeoDataFrame(
-        data={'ts': timestamps},
+        data={'ts': timestamps, 'ts_local': ts_local},
         # data={"ts": ts_fake},
         geometry=points
         # geometry=gt_pts
     )
+
+    # Pre-flight check: scan ts_local for zero (or negative) consecutive gaps
+    # that would cause ZeroDivisionError inside speed_acceleration_jerk. Raw
+    # sensor time is strictly increasing at >=1s spacing, so any zero gap here
+    # is manufactured by the second-pass insertion logic, not the input data.
+    zero_gap_idxs = [i for i in range(1, len(ts_local))
+                     if ts_local[i] - ts_local[i - 1] <= 0]
+    if zero_gap_idxs:
+        print("ZERO_GAP_DBG: found %d zero/negative ts_local gaps before "
+              "speed_acceleration_jerk; indices (and surrounding values):" %
+              len(zero_gap_idxs))
+        for zi in zero_gap_idxs:
+            lo = max(0, zi - 2)
+            hi = min(len(ts_local), zi + 3)
+            print("  gap at idx=%d: ts_local[%d:%d]=%s  ts[%d:%d]=%s" %
+                  (zi, lo, hi, ts_local[lo:hi], lo, hi, timestamps[lo:hi]))
 
     speed_acceleration_jerk(gpdf)
     matching = []
@@ -1473,27 +1564,41 @@ def ref_dtw_gt_with_ends_no_second_pass(e, tz="UTC", points_per_second=1, interp
 def speed_acceleration_jerk(gpdf):
     """
     Calculate and add speed, acceleration, and jerk for a given GeoDataFrame.
+
+    Time differences are taken on a small-magnitude local axis rather than on
+    the raw ~1.5e9 absolute Unix-epoch `ts`. Differencing the absolute epoch
+    directly quantizes sub-second offsets onto a ~2.4e-7 s grid, and the finite
+    differences then amplify that roundoff by orders of magnitude (visible as
+    spurious acceleration wobble and exploding jerk). If a high-precision
+    `ts_local` column is present it is used as-is; otherwise the absolute `ts`
+    is shifted by its first value, which at least avoids re-quantizing here.
     """
+    if "ts_local" in gpdf.columns:
+        t = list(gpdf["ts_local"])
+    else:
+        ts = list(gpdf.ts)
+        t0 = ts[0] if len(ts) else 0.0
+        t = [x - t0 for x in ts]
     skip = 0
     speed = []
     acceleration = []
     jerk = []
     for idx in range(1, len(gpdf)):
         dist = dtw.calDistance(gpdf.iloc[idx].geometry, gpdf.iloc[idx-1].geometry)
-        speed.append(dist / (gpdf.iloc[idx].ts - gpdf.iloc[idx-1].ts))
+        speed.append(dist / (t[idx] - t[idx-1]))
         if skip > 0:
-            acceleration.append((speed[idx-1] - speed[idx-2]) / (gpdf.iloc[idx-1].ts - gpdf.iloc[idx-2].ts))
+            acceleration.append((speed[idx-1] - speed[idx-2]) / (t[idx-1] - t[idx-2]))
             if skip > 1:
-                jerk.append((acceleration[idx-2] - acceleration[idx-3]) / (gpdf.iloc[idx-2].ts - gpdf.iloc[idx-3].ts))
+                jerk.append((acceleration[idx-2] - acceleration[idx-3]) / (t[idx-2] - t[idx-3]))
             else:
                 skip += 1
         else:
             skip += 1
     speed.append(0)
-    acceleration.append((speed[-1] - speed[-2]) / (gpdf.iloc[-1].ts - gpdf.iloc[-2].ts))
+    acceleration.append((speed[-1] - speed[-2]) / (t[-1] - t[-2]))
     acceleration.append(0)
-    jerk.append((acceleration[-2] - acceleration[-3]) / (gpdf.iloc[-2].ts - gpdf.iloc[-3].ts))
-    jerk.append((acceleration[-1] - acceleration[-2]) / (gpdf.iloc[-1].ts - gpdf.iloc[-2].ts))
+    jerk.append((acceleration[-2] - acceleration[-3]) / (t[-2] - t[-3]))
+    jerk.append((acceleration[-1] - acceleration[-2]) / (t[-1] - t[-2]))
     jerk.append(0)
     gpdf["speed"] = speed
     gpdf["acceleration"] = acceleration
