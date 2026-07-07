@@ -792,7 +792,7 @@ def _assign_secondpass_timestamps(entry_pos, run_positions, exit_pos,
     # onto a ~2.4e-7 s grid and inject the noise that the finite-difference
     # acceleration/jerk then amplify by orders of magnitude.
     uniform = [(n + 1) * (T / (N + 1)) for n in range(N)]
-    return uniform #bypass dynamic second-pass timestamp assignment
+    # return uniform #bypass dynamic second-pass timestamp assignment
     if T <= 0 or not np.all(np.isfinite([v0, a0, v1, a1])):
         _sp_debug(active, "FALLBACK uniform: T<=0 or non-finite kinematics "
                   "(T=%s, finite=%s) -> %s" %
@@ -949,7 +949,7 @@ def _constant_velocity_fill(start_pos, run_positions, t_start, t_stop):
     # float cancellation that occurs when tiny offsets are added directly onto a
     # ~1.5e9 absolute Unix-epoch base.
     uniform = [(n + 1) * (span / (N + 1)) for n in range(N)]
-    return uniform #bypass dyanmic assignment
+    # return uniform #bypass dyanmic assignment
     if N == 0:
         return []
     seq = [start_pos] + list(run_positions)
