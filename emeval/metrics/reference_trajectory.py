@@ -964,7 +964,7 @@ def _constant_velocity_fill(start_pos, run_positions, t_start, t_stop):
 
 def ref_dtw_gt_with_ends_general(e, tz="UTC", points_per_second=1, interp=2, time_threshold=300, jerk_limit=5,
                                  speed_threshold=60, acceleration_threshold=55,
-                                 jerk_threshold=15, max_clear_time=None,
+                                 jerk_threshold=30, max_clear_time=None,
                                  refill_percentage=0.0):
     fill_gt_linestring(e)
     a_pts = emd.to_geo_df(e["temporal_control"]["android"]["location_df"])
