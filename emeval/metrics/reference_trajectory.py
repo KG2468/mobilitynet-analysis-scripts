@@ -1784,7 +1784,10 @@ def _spread_equal_timestamps(timestamps):
         i = j + 1
     return ts
 
-def ref_dtw_gt_single(e, device, tz="UTC", points_per_second=1, interp=2, jerk_limit=5):
+def ref_dtw_gt_single(e, device, tz="UTC", points_per_second=1, interp=2, jerk_limit=5,
+                      speed_threshold=60, acceleration_threshold=55,
+                      jerk_threshold=30, max_clear_time=None,
+                      refill_percentage=0.0):
     """
     Single-stream DTW reference. Runs DTW between ground truth points and a
     single device's trajectory, then for each ground truth point uses the mean
@@ -1804,7 +1807,12 @@ def ref_dtw_gt_single(e, device, tz="UTC", points_per_second=1, interp=2, jerk_l
     fill_gt_linestring(e)
     pts = emd.to_geo_df(e["temporal_control"][device]["location_df"])
     if interp >= 1:
-        new_pts = get_int_aligned_trajectory(pts, tz, True, True)
+        new_pts = get_int_aligned_trajectory(pts, tz, True, True,
+                                             speed_threshold=speed_threshold,
+                                             acceleration_threshold=acceleration_threshold,
+                                             jerk_threshold=jerk_threshold,
+                                             max_clear_time=max_clear_time,
+                                             refill_percentage=refill_percentage)
     else:
         new_pts = pts
     pts_seq = new_pts["geometry"].to_list()
@@ -2138,7 +2146,9 @@ def final_ref_ensemble(e, dist_threshold=25, tz="UTC", include_ends=False):
 # END: Final ensemble reference construction that uses ground truth
 ####
 
-def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False, device=None, time_threshold=300):
+def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False, device=None, time_threshold=300,
+                  jerk_limit=5, speed_threshold=60, acceleration_threshold=55,
+                  jerk_threshold=30, max_clear_time=None, refill_percentage=0.0):
     fill_gt_linestring(e)
     gt_linestring = e["ground_truth"]["linestring"]
 
@@ -2182,7 +2192,12 @@ def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False, 
             stats = None
     elif function == 'dtw':
         try:
-            ref_df = ref_dtw_gt_with_ends_general(e, tz, time_threshold=time_threshold)
+            ref_df = ref_dtw_gt_with_ends_general(
+                e, tz=tz, time_threshold=time_threshold, jerk_limit=jerk_limit,
+                speed_threshold=speed_threshold, acceleration_threshold=acceleration_threshold,
+                jerk_threshold=jerk_threshold, max_clear_time=max_clear_time,
+                refill_percentage=refill_percentage
+            )
             stats = stats_gen(ref_df, e)
         except Exception as exp_dtw:
             print("Found exception %s while computing dtw_ref_df, skipping" % exp_dtw)
@@ -2208,7 +2223,12 @@ def ref_and_stats(e, function, dist_threshold=25, tz="UTC", include_ends=False, 
     elif function == 'dtw_single':
         assert device is not None, "dtw_single requires a device ('android' or 'ios')"
         try:
-            ref_df = ref_dtw_gt_single(e, device, tz)
+            ref_df = ref_dtw_gt_single(
+                e, device=device, tz=tz, jerk_limit=jerk_limit,
+                speed_threshold=speed_threshold, acceleration_threshold=acceleration_threshold,
+                jerk_threshold=jerk_threshold, max_clear_time=max_clear_time,
+                refill_percentage=refill_percentage
+            )
             stats = stats_gen(ref_df, e)
         except Exception as exp_dtws:
             print("Found exception %s while computing dtw_single_ref_df (%s), skipping" % (exp_dtws, device))
