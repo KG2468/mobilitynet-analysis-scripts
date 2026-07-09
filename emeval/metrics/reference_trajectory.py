@@ -1784,12 +1784,22 @@ def _spread_equal_timestamps(timestamps):
         i = j + 1
     return ts
 
-def ref_dtw_gt_single(e, device, tz="UTC", points_per_second=1, interp=2):
+def ref_dtw_gt_single(e, device, tz="UTC", points_per_second=1, interp=2, jerk_limit=5):
     """
     Single-stream DTW reference. Runs DTW between ground truth points and a
     single device's trajectory, then for each ground truth point uses the mean
     timestamp of the matched device points. The reference geometry follows the
     ground truth points (consistent with `ref_dtw_gt_with_ends_general`).
+
+    Timestamps are assigned with the same first-pass / second-pass scheme as the
+    two-stream `ref_dtw_gt_with_ends_general`: ground truth points whose matched
+    device set differs from the previous point ("first pass") are placed at the
+    mean timestamp of their matched device points, and runs of consecutive
+    ground truth points that share the previous point's match set (a DTW "cone")
+    are filled in a second pass with a constant-acceleration transition curve
+    (interior runs) or a constant-velocity fill (end-of-trajectory runs). Unlike
+    the two-stream version there is only one device, so there is no stream
+    switching and hence no continuity offset.
     """
     fill_gt_linestring(e)
     pts = emd.to_geo_df(e["temporal_control"][device]["location_df"])
@@ -1813,34 +1823,141 @@ def ref_dtw_gt_single(e, device, tz="UTC", points_per_second=1, interp=2):
     d.calculate()
     mapping = d.get_path()
 
+    # Build per-gt match groups and classify into firstpass / second-pass runs.
+    # A gt point is second-pass when its matched device point set is identical to
+    # the previous gt point's (a DTW cone), mirroring the two-stream
+    # classification (which additionally requires both streams to match).
     groups = []
     m_idx = len(mapping) - 1
+    match_streak = 0
+    firstpass_idxes = []
+    secondpass_idxes = []
     for idx in range(len(gt_pts)):
         group = []
         while m_idx >= 0 and mapping[m_idx][0] == idx:
             group.append(mapping[m_idx][1])
             m_idx -= 1
+        if len(groups) > 0 and groups[-1] == group:
+            if match_streak == 0:
+                secondpass_idxes.append([idx])
+            else:
+                secondpass_idxes[-1].append(idx)
+            match_streak += 1
+        else:
+            firstpass_idxes.append(idx)
+            match_streak = 0
         groups.append(group)
 
+    def matched_ts_mean(idx):
+        unique_elements = sorted(set(groups[idx]))
+        return float(np.mean(new_pts.iloc[unique_elements]["ts"].to_list()))
+
+    # First pass: place each firstpass gt point at the mean timestamp of its
+    # matched device points.
     points = []
     timestamps = []
-    matching = []
-    for idx in range(len(gt_pts)):
-        unique_elements = sorted(set(groups[idx]))
-        if len(unique_elements) == 0:
-            continue
-        df = new_pts.iloc[unique_elements]
-        matched_ts_mean = float(np.mean(df["ts"].to_list()))
+    for idx in firstpass_idxes:
         points.append(gt_pts[idx])
-        timestamps.append(matched_ts_mean)
-        matching.append([gt_pts[idx]] + [pts_seq[p] for p in unique_elements])
+        timestamps.append(matched_ts_mean(idx))
 
     if len(points) == 0:
         return gpd.GeoDataFrame()
 
-    timestamps = _spread_equal_timestamps(timestamps)
+    # High-precision local time axis (seconds since `start_ts`), kept in
+    # lock-step with `timestamps` through the second pass so the finite-diff
+    # speed/acceleration/jerk stay free of absolute-epoch roundoff noise.
+    ts_local = [t - start_ts for t in timestamps]
 
-    gpdf = gpd.GeoDataFrame(data={'ts': timestamps}, geometry=points)
+    # Firstpass speed/acceleration, used to shape the second-pass transition
+    # curves and keyed by ground-truth index through `firstpass_idxes`.
+    fp_speed = {}
+    if len(points) > 3:
+        try:
+            fp_gpdf = gpd.GeoDataFrame(data={"ts_local": list(ts_local)},
+                                       geometry=list(points))
+            speed_acceleration_jerk(fp_gpdf)
+            for pos, gt_idx in enumerate(firstpass_idxes):
+                fp_speed[gt_idx] = (float(fp_gpdf.speed.iloc[pos]),
+                                    float(fp_gpdf.acceleration.iloc[pos]))
+        except Exception as exp_fp:
+            print("Could not compute firstpass speed/accel for second-pass "
+                  "shaping, falling back to uniform: %s" % exp_fp)
+            fp_speed = {}
+
+    # Second pass: fill each cone run. Insertions restore the invariant that
+    # position k holds ground-truth index k, since every gt index is either a
+    # firstpass point or part of exactly one second-pass run.
+    for idx_list in secondpass_idxes:
+        first_idx = idx_list[0]
+
+        if first_idx >= len(timestamps):
+            # End-of-trajectory run: no firstpass point after it. Fill from the
+            # last placed point to `end_ts` at constant velocity, else fall back
+            # to a uniform split of the final interval.
+            start_stamp = timestamps[-1]
+            if end_ts > start_stamp:
+                start_pos = points[-1]
+                rel_offsets = _constant_velocity_fill(
+                    start_pos, [gt_pts[i] for i in idx_list], start_stamp, end_ts)
+                base_local = start_stamp - start_ts
+                for n in range(len(idx_list)):
+                    points.insert(idx_list[n], gt_pts[idx_list[n]])
+                    timestamps.insert(idx_list[n], start_stamp + rel_offsets[n])
+                    ts_local.insert(idx_list[n], base_local + rel_offsets[n])
+            else:
+                first_stamp = timestamps[-2]
+                last_stamp = timestamps[-1]
+                step = (last_stamp - first_stamp) / (len(idx_list) + 1)
+                timestamps[-1] = first_stamp + step
+                ts_local[-1] = (first_stamp - start_ts) + step
+                base_local = (first_stamp - start_ts) + step
+                first_stamp += step
+                for n in range(len(idx_list)):
+                    points.insert(idx_list[n], gt_pts[idx_list[n]])
+                    timestamps.insert(idx_list[n], first_stamp + ((n + 1) * step))
+                    ts_local.insert(idx_list[n], base_local + ((n + 1) * step))
+            continue
+
+        # Interior run: constant-acceleration transition between the bracketing
+        # firstpass points.
+        first_stamp = timestamps[first_idx - 1]
+        last_stamp = timestamps[first_idx]
+        entry_pos = points[first_idx - 1]
+        exit_pos = points[first_idx]
+        v0, a0 = fp_speed.get(first_idx - 1, (np.nan, np.nan))
+        v1, a1 = fp_speed.get(idx_list[-1] + 1, (np.nan, np.nan))
+        rel_offsets = _assign_secondpass_timestamps(
+            entry_pos, [gt_pts[i] for i in idx_list], exit_pos,
+            first_stamp, last_stamp, v0, a0, v1, a1, jerk_limit,
+            debug_tag=first_idx)
+        base_local = first_stamp - start_ts
+        for n in range(len(idx_list)):
+            points.insert(idx_list[n], gt_pts[idx_list[n]])
+            timestamps.insert(idx_list[n], first_stamp + rel_offsets[n])
+            ts_local.insert(idx_list[n], base_local + rel_offsets[n])
+
+    # Safety net: cone runs bracketed by two firstpass points with identical
+    # mean timestamps (zero-width window) can still leave equal consecutive
+    # stamps; spread any such runs so the finite differences never divide by
+    # zero. Rebuild the absolute `ts` from the (possibly adjusted) local axis.
+    ts_local = _spread_equal_timestamps(ts_local)
+    timestamps = [start_ts + tl for tl in ts_local]
+
+    # Matching: fan every firstpass gt point to its matched device points; the
+    # second-pass members carry only their own ground-truth point so each cone
+    # is represented once (mirrors the two-stream collapse).
+    secondpass_set = set()
+    for idx_list in secondpass_idxes:
+        secondpass_set.update(idx_list)
+    matching = []
+    for m in range(len(gt_pts)):
+        match = [gt_pts[m]]
+        if m not in secondpass_set:
+            match += [pts_seq[p] for p in sorted(set(groups[m]))]
+        matching.append(match)
+
+    gpdf = gpd.GeoDataFrame(data={'ts': timestamps, 'ts_local': ts_local},
+                            geometry=points)
     speed_acceleration_jerk(gpdf)
     gpdf['matching'] = matching
     gpdf['longitude'] = gpdf.geometry.x
