@@ -22,14 +22,14 @@
     "overpass_url": "https://overpass-api.de/api/interpreter",
     "request_workers": 4,
     "processor_workers": 2,
-    "overpass_workers": 1,
+    "overpass_batch_size": 100,
     "nominatim_delay_seconds": 1.1,
     "retries": 1
   },
   "results": [
     {
       "mode": "sequential",
-      "wall_seconds": 99.01751004904509,
+      "wall_seconds": 15.08796890731901,
       "route_point_results": [
         {
           "route_coordinate_index": 0,
@@ -44,8 +44,8 @@
             "type": "secondary",
             "display_name": "East San Fernando Street, Downtown Historic District, Japantown, San Jose, Santa Clara County, California, 95172, United States"
           },
-          "nominatim_api_seconds": 1.9922588597983122,
-          "nominatim_processing_seconds": 0.0035277409479022026
+          "nominatim_api_seconds": 0.6727972058579326,
+          "nominatim_processing_seconds": 8.142553269863129e-06
         },
         {
           "route_coordinate_index": 6,
@@ -60,8 +60,8 @@
             "type": "tertiary",
             "display_name": "North 1st Street, Saint James Square Historic District, Japantown, San Jose, Santa Clara County, California, 95113, United States"
           },
-          "nominatim_api_seconds": 1.0088513800874352,
-          "nominatim_processing_seconds": 0.0024242205545306206
+          "nominatim_api_seconds": 0.028845216147601604,
+          "nominatim_processing_seconds": 6.525777280330658e-06
         },
         {
           "route_coordinate_index": 12,
@@ -76,8 +76,8 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Saint James Square Historic District, Japantown, San Jose, Santa Clara County, California, 95110, United States"
           },
-          "nominatim_api_seconds": 0.5530633619055152,
-          "nominatim_processing_seconds": 0.003231409937143326
+          "nominatim_api_seconds": 0.17571495566517115,
+          "nominatim_processing_seconds": 8.158385753631592e-06
         },
         {
           "route_coordinate_index": 17,
@@ -92,8 +92,8 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Hensley Historic District, Japantown, San Jose, Santa Clara County, California, 95110, United States"
           },
-          "nominatim_api_seconds": 0.7970525436103344,
-          "nominatim_processing_seconds": 0.0039214929565787315
+          "nominatim_api_seconds": 0.4370086984708905,
+          "nominatim_processing_seconds": 0.00037710461765527725
         },
         {
           "route_coordinate_index": 23,
@@ -108,8 +108,8 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Hensley Historic District, Japantown, San Jose, Santa Clara County, California, 95110, United States"
           },
-          "nominatim_api_seconds": 0.31991040613502264,
-          "nominatim_processing_seconds": 1.138448715209961e-05
+          "nominatim_api_seconds": 0.3382954401895404,
+          "nominatim_processing_seconds": 1.0307878255844116e-05
         },
         {
           "route_coordinate_index": 29,
@@ -124,8 +124,8 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Japantown, San Jose, Santa Clara County, California, 95110, United States"
           },
-          "nominatim_api_seconds": 0.6184116462245584,
-          "nominatim_processing_seconds": 0.001431773416697979
+          "nominatim_api_seconds": 0.024765229783952236,
+          "nominatim_processing_seconds": 7.137656211853027e-06
         },
         {
           "route_coordinate_index": 35,
@@ -140,8 +140,8 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Rose Garden, San Jose, Santa Clara County, California, 95126, United States"
           },
-          "nominatim_api_seconds": 0.5488854357972741,
-          "nominatim_processing_seconds": 0.002115241251885891
+          "nominatim_api_seconds": 0.2744996817782521,
+          "nominatim_processing_seconds": 1.4658086001873016e-05
         },
         {
           "route_coordinate_index": 40,
@@ -156,8 +156,8 @@
             "type": "primary",
             "display_name": "Coleman Avenue, College Park, Rose Garden, San Jose, Santa Clara County, California, 95126, United States"
           },
-          "nominatim_api_seconds": 0.6017151372507215,
-          "nominatim_processing_seconds": 1.0555610060691833e-05
+          "nominatim_api_seconds": 0.28913377691060305,
+          "nominatim_processing_seconds": 1.7265789210796356e-05
         },
         {
           "route_coordinate_index": 46,
@@ -172,8 +172,8 @@
             "type": "secondary",
             "display_name": "West Taylor Street, College Park, Rose Garden, San Jose, Santa Clara County, California, 95126, United States"
           },
-          "nominatim_api_seconds": 0.34509644098579884,
-          "nominatim_processing_seconds": 7.363036274909973e-06
+          "nominatim_api_seconds": 0.20878652669489384,
+          "nominatim_processing_seconds": 7.21123069524765e-06
         },
         {
           "route_coordinate_index": 52,
@@ -188,37 +188,109 @@
             "type": "primary",
             "display_name": "The Alameda, College Park, Rose Garden, San Jose, Santa Clara County, California, 95126, United States"
           },
-          "nominatim_api_seconds": 0.4746933002024889,
-          "nominatim_processing_seconds": 5.198642611503601e-06
+          "nominatim_api_seconds": 0.025197097100317478,
+          "nominatim_processing_seconds": 8.341856300830841e-06
         }
       ],
       "way_results": [
         {
-          "osm_way_id": 416909217,
+          "osm_way_id": 26341859,
           "status": "accepted",
           "tags": {
-            "cycleway:both": "separate",
+            "change:lanes": "yes|not_right|no",
+            "highway": "primary",
+            "lanes": "3",
+            "name": "Coleman Avenue",
+            "oneway": "yes",
+            "placement": "right_of:1",
+            "tiger:county": "Santa Clara, CA",
+            "tiger:name_base": "Coleman",
+            "tiger:name_type": "Ave",
+            "turn:lanes": "||right"
+          },
+          "node_count": 13,
+          "validation_reason": "highway=primary",
+          "overpass_processing_seconds": 0.00031319353729486465
+        },
+        {
+          "osm_way_id": 28463243,
+          "status": "accepted",
+          "tags": {
+            "highway": "primary",
+            "lanes": "2",
+            "name": "Coleman Avenue",
+            "oneway": "yes",
+            "sidewalk:left": "no",
+            "sidewalk:right": "separate",
+            "surface": "asphalt",
+            "tiger:county": "Santa Clara, CA",
+            "tiger:name_base": "Coleman",
+            "tiger:name_type": "Ave"
+          },
+          "node_count": 8,
+          "validation_reason": "highway=primary",
+          "overpass_processing_seconds": 4.188157618045807e-06
+        },
+        {
+          "osm_way_id": 28463446,
+          "status": "accepted",
+          "tags": {
+            "cycleway:right": "lane",
+            "cycleway:right:buffer": "no",
+            "highway": "primary",
+            "lanes": "2",
+            "name": "Coleman Avenue",
+            "oneway": "yes",
+            "sidewalk:left": "no",
+            "sidewalk:right": "separate",
+            "surface": "asphalt"
+          },
+          "node_count": 9,
+          "validation_reason": "highway=primary",
+          "overpass_processing_seconds": 1.3187527656555176e-06
+        },
+        {
+          "osm_way_id": 48102862,
+          "status": "accepted",
+          "tags": {
             "highway": "secondary",
             "lanes": "3",
-            "lanes:backward": "2",
-            "lanes:forward": "1",
-            "name": "East San Fernando Street",
-            "name:etymology": "Mission San Fernando Rey de Espa\u00f1a",
-            "name:etymology:wikidata": "Q6878715",
-            "parking": "lane",
-            "parking:condition:both": "fee",
-            "parking:lane": "both",
-            "parking:lane:both": "parallel",
-            "parking:lane:both:parallel": "on_street",
-            "sidewalk:both": "separate",
+            "maxspeed": "35 mph",
+            "name": "West Taylor Street",
+            "name:etymology": "Zachary Taylor",
+            "name:etymology:wikidata": "Q11896",
+            "oneway": "yes",
+            "sidewalk:left": "no",
+            "sidewalk:right": "separate",
             "surface": "asphalt",
-            "turn:lanes:backward": "left|none",
-            "wikidata": "Q88062129"
+            "tiger:cfcc": "A41",
+            "tiger:county": "Santa Clara, CA",
+            "tiger:name_base": "Taylor",
+            "tiger:name_direction_prefix": "W",
+            "tiger:name_type": "St",
+            "turn:lanes": "left||",
+            "wikidata": "Q107302077"
           },
           "node_count": 3,
           "validation_reason": "highway=secondary",
-          "overpass_api_seconds": 21.83562634885311,
-          "overpass_processing_seconds": 0.0003144480288028717
+          "overpass_processing_seconds": 1.4165416359901428e-06
+        },
+        {
+          "osm_way_id": 157756547,
+          "status": "accepted",
+          "tags": {
+            "highway": "primary",
+            "lanes": "3",
+            "name": "Coleman Avenue",
+            "oneway": "yes",
+            "sidewalk": "no",
+            "tiger:county": "Santa Clara, CA",
+            "tiger:name_base": "Coleman",
+            "tiger:name_type": "Ave"
+          },
+          "node_count": 5,
+          "validation_reason": "highway=primary",
+          "overpass_processing_seconds": 4.1173771023750305e-06
         },
         {
           "osm_way_id": 360441702,
@@ -245,116 +317,33 @@
           },
           "node_count": 6,
           "validation_reason": "highway=tertiary",
-          "overpass_api_seconds": 1.2424851031973958,
-          "overpass_processing_seconds": 5.257315933704376e-06
+          "overpass_processing_seconds": 1.1278316378593445e-06
         },
         {
-          "osm_way_id": 157756547,
+          "osm_way_id": 416909217,
           "status": "accepted",
           "tags": {
-            "highway": "primary",
-            "lanes": "3",
-            "name": "Coleman Avenue",
-            "oneway": "yes",
-            "sidewalk": "no",
-            "tiger:county": "Santa Clara, CA",
-            "tiger:name_base": "Coleman",
-            "tiger:name_type": "Ave"
-          },
-          "node_count": 5,
-          "validation_reason": "highway=primary",
-          "overpass_api_seconds": 15.164428289979696,
-          "overpass_processing_seconds": 0.00044157635420560837
-        },
-        {
-          "osm_way_id": 26341859,
-          "status": "accepted",
-          "tags": {
-            "change:lanes": "yes|not_right|no",
-            "highway": "primary",
-            "lanes": "3",
-            "name": "Coleman Avenue",
-            "oneway": "yes",
-            "placement": "right_of:1",
-            "tiger:county": "Santa Clara, CA",
-            "tiger:name_base": "Coleman",
-            "tiger:name_type": "Ave",
-            "turn:lanes": "||right"
-          },
-          "node_count": 13,
-          "validation_reason": "highway=primary",
-          "overpass_api_seconds": 1.6590314013883471,
-          "overpass_processing_seconds": 0.00021768081933259964
-        },
-        {
-          "osm_way_id": 931293096,
-          "status": "accepted",
-          "tags": {
-            "cycleway:right": "lane",
-            "cycleway:right:buffer": "no",
-            "highway": "primary",
-            "lanes": "2",
-            "name": "Coleman Avenue",
-            "oneway": "yes",
-            "surface": "asphalt"
-          },
-          "node_count": 9,
-          "validation_reason": "highway=primary",
-          "overpass_api_seconds": 7.335089436732233,
-          "overpass_processing_seconds": 0.0006214575842022896
-        },
-        {
-          "osm_way_id": 28463446,
-          "status": "accepted",
-          "tags": {
-            "cycleway:right": "lane",
-            "cycleway:right:buffer": "no",
-            "highway": "primary",
-            "lanes": "2",
-            "name": "Coleman Avenue",
-            "oneway": "yes",
-            "sidewalk:left": "no",
-            "sidewalk:right": "separate",
-            "surface": "asphalt"
-          },
-          "node_count": 9,
-          "validation_reason": "highway=primary",
-          "overpass_api_seconds": 17.045595132745802,
-          "overpass_processing_seconds": 0.00031273253262043
-        },
-        {
-          "osm_way_id": 28463243,
-          "status": "request_failed",
-          "error": "Request to https://overpass-api.de/api/interpreter failed after 2 attempt(s): 504 Server Error: Gateway Timeout for url: https://overpass-api.de/api/interpreter",
-          "overpass_api_seconds": 21.57876788266003,
-          "overpass_processing_seconds": 0.0
-        },
-        {
-          "osm_way_id": 48102862,
-          "status": "accepted",
-          "tags": {
+            "cycleway:both": "separate",
             "highway": "secondary",
             "lanes": "3",
-            "maxspeed": "35 mph",
-            "name": "West Taylor Street",
-            "name:etymology": "Zachary Taylor",
-            "name:etymology:wikidata": "Q11896",
-            "oneway": "yes",
-            "sidewalk:left": "no",
-            "sidewalk:right": "separate",
+            "lanes:backward": "2",
+            "lanes:forward": "1",
+            "name": "East San Fernando Street",
+            "name:etymology": "Mission San Fernando Rey de Espa\u00f1a",
+            "name:etymology:wikidata": "Q6878715",
+            "parking": "lane",
+            "parking:condition:both": "fee",
+            "parking:lane": "both",
+            "parking:lane:both": "parallel",
+            "parking:lane:both:parallel": "on_street",
+            "sidewalk:both": "separate",
             "surface": "asphalt",
-            "tiger:cfcc": "A41",
-            "tiger:county": "Santa Clara, CA",
-            "tiger:name_base": "Taylor",
-            "tiger:name_direction_prefix": "W",
-            "tiger:name_type": "St",
-            "turn:lanes": "left||",
-            "wikidata": "Q107302077"
+            "turn:lanes:backward": "left|none",
+            "wikidata": "Q88062129"
           },
           "node_count": 3,
           "validation_reason": "highway=secondary",
-          "overpass_api_seconds": 0.8031292939558625,
-          "overpass_processing_seconds": 3.339722752571106e-06
+          "overpass_processing_seconds": 1.1743977665901184e-06
         },
         {
           "osm_way_id": 417048993,
@@ -381,57 +370,81 @@
           },
           "node_count": 4,
           "validation_reason": "highway=primary",
-          "overpass_api_seconds": 4.281828696839511,
-          "overpass_processing_seconds": 0.0008502369746565819
+          "overpass_processing_seconds": 3.7122517824172974e-06
+        },
+        {
+          "osm_way_id": 931293096,
+          "status": "accepted",
+          "tags": {
+            "cycleway:right": "lane",
+            "cycleway:right:buffer": "no",
+            "highway": "primary",
+            "lanes": "2",
+            "name": "Coleman Avenue",
+            "oneway": "yes",
+            "surface": "asphalt"
+          },
+          "node_count": 9,
+          "validation_reason": "highway=primary",
+          "overpass_processing_seconds": 1.7005950212478638e-06
+        }
+      ],
+      "overpass_batches": [
+        {
+          "requested_way_count": 9,
+          "returned_way_count": 9,
+          "failed_way_count": 0,
+          "overpass_api_seconds": 5.160088202916086
         }
       ],
       "summary": {
         "nominatim_api": {
           "count": 10,
-          "total_seconds": 7.259938511997461,
-          "mean_seconds": 0.7259938511997461,
-          "median_seconds": 0.5773892495781183,
-          "max_seconds": 1.9922588597983122
+          "total_seconds": 2.475043828599155,
+          "mean_seconds": 0.2475043828599155,
+          "median_seconds": 0.24164310423657298,
+          "max_seconds": 0.6727972058579326
         },
         "response_queue": {
           "count": 0
         },
         "nominatim_processing": {
           "count": 10,
-          "total_seconds": 0.016686380840837955,
-          "mean_seconds": 0.0016686380840837955,
-          "median_seconds": 0.001773507334291935,
-          "max_seconds": 0.0039214929565787315
+          "total_seconds": 0.00046485383063554764,
+          "mean_seconds": 4.6485383063554767e-05,
+          "median_seconds": 8.250121027231216e-06,
+          "max_seconds": 0.00037710461765527725
         },
         "overpass_api": {
-          "count": 9,
-          "total_seconds": 90.94598158635199,
-          "mean_seconds": 10.105109065150222,
-          "median_seconds": 7.335089436732233,
-          "max_seconds": 21.83562634885311
+          "count": 1,
+          "total_seconds": 5.160088202916086,
+          "mean_seconds": 5.160088202916086,
+          "median_seconds": 5.160088202916086,
+          "max_seconds": 5.160088202916086
         },
         "overpass_processing": {
           "count": 9,
-          "total_seconds": 0.0027667293325066566,
-          "mean_seconds": 0.0003074143702785174,
-          "median_seconds": 0.00031273253262043,
-          "max_seconds": 0.0008502369746565819
+          "total_seconds": 0.0003319494426250458,
+          "mean_seconds": 3.688327140278286e-05,
+          "median_seconds": 1.7005950212478638e-06,
+          "max_seconds": 0.00031319353729486465
         },
         "ways_returned": 9,
-        "accepted_ways": 8,
+        "overpass_batch_count": 1,
+        "accepted_ways": 9,
         "review_required_ways": 0
       }
     },
     {
       "mode": "threaded",
-      "wall_seconds": 110.1191780520603,
+      "wall_seconds": 12.104422167874873,
       "route_point_results": [
         {
           "route_coordinate_index": 6,
           "route_longitude": -121.89179,
           "route_latitude": 37.33772,
           "status": "way_found",
-          "nominatim_api_seconds": 0.45770156662911177,
+          "nominatim_api_seconds": 0.27993322163820267,
           "osm_way_id": 360441702,
           "nominatim": {
             "osm_type": "way",
@@ -440,15 +453,15 @@
             "type": "tertiary",
             "display_name": "North 1st Street, Saint James Square Historic District, Japantown, San Jose, Santa Clara County, California, 95113, United States"
           },
-          "response_queue_seconds": 5.459652437828481,
-          "nominatim_processing_seconds": 1.2094154953956604e-05
+          "response_queue_seconds": 0.9453595811501145,
+          "nominatim_processing_seconds": 7.811002433300018e-06
         },
         {
           "route_coordinate_index": 0,
           "route_longitude": -121.8856,
           "route_latitude": 37.3359,
           "status": "way_found",
-          "nominatim_api_seconds": 1.5662403022870421,
+          "nominatim_api_seconds": 0.1344965035095811,
           "osm_way_id": 416909217,
           "nominatim": {
             "osm_type": "way",
@@ -457,15 +470,15 @@
             "type": "secondary",
             "display_name": "East San Fernando Street, Downtown Historic District, Japantown, San Jose, Santa Clara County, California, 95172, United States"
           },
-          "response_queue_seconds": 5.459917347878218,
-          "nominatim_processing_seconds": 7.586553692817688e-06
+          "response_queue_seconds": 2.1906408378854394,
+          "nominatim_processing_seconds": 7.584691047668457e-06
         },
         {
           "route_coordinate_index": 12,
           "route_longitude": -121.89537,
           "route_latitude": 37.33993,
           "status": "way_found",
-          "nominatim_api_seconds": 0.09106949996203184,
+          "nominatim_api_seconds": 0.46819144394248724,
           "osm_way_id": 157756547,
           "nominatim": {
             "osm_type": "way",
@@ -474,15 +487,15 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Saint James Square Historic District, Japantown, San Jose, Santa Clara County, California, 95110, United States"
           },
-          "response_queue_seconds": 4.732959361746907,
-          "nominatim_processing_seconds": 2.8330832719802856e-06
+          "response_queue_seconds": 0.024885032325983047,
+          "nominatim_processing_seconds": 0.0013874052092432976
         },
         {
           "route_coordinate_index": 17,
           "route_longitude": -121.89851,
           "route_latitude": 37.34212,
           "status": "way_found",
-          "nominatim_api_seconds": 0.23944917041808367,
+          "nominatim_api_seconds": 0.4045971781015396,
           "osm_way_id": 26341859,
           "nominatim": {
             "osm_type": "way",
@@ -491,15 +504,15 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Hensley Historic District, Japantown, San Jose, Santa Clara County, California, 95110, United States"
           },
-          "response_queue_seconds": 3.4821457220241427,
-          "nominatim_processing_seconds": 1.8421560525894165e-06
+          "response_queue_seconds": 0.00941301416605711,
+          "nominatim_processing_seconds": 3.205146640539169e-05
         },
         {
           "route_coordinate_index": 23,
           "route_longitude": -121.90023,
           "route_latitude": 37.34213,
           "status": "way_found",
-          "nominatim_api_seconds": 0.23221027571707964,
+          "nominatim_api_seconds": 0.07624033000320196,
           "osm_way_id": 26341859,
           "nominatim": {
             "osm_type": "way",
@@ -508,15 +521,15 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Hensley Historic District, Japantown, San Jose, Santa Clara County, California, 95110, United States"
           },
-          "response_queue_seconds": 2.369732128456235,
-          "nominatim_processing_seconds": 1.3932585716247559e-06
+          "response_queue_seconds": 0.0010273158550262451,
+          "nominatim_processing_seconds": 2.8262846171855927e-05
         },
         {
           "route_coordinate_index": 29,
           "route_longitude": -121.90425,
           "route_latitude": 37.34088,
           "status": "way_found",
-          "nominatim_api_seconds": 0.07676439266651869,
+          "nominatim_api_seconds": 0.32408205419778824,
           "osm_way_id": 931293096,
           "nominatim": {
             "osm_type": "way",
@@ -525,15 +538,15 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Japantown, San Jose, Santa Clara County, California, 95110, United States"
           },
-          "response_queue_seconds": 1.4483349081128836,
-          "nominatim_processing_seconds": 1.2842938303947449e-06
+          "response_queue_seconds": 0.01251329854130745,
+          "nominatim_processing_seconds": 3.54573130607605e-05
         },
         {
           "route_coordinate_index": 35,
           "route_longitude": -121.90923,
           "route_latitude": 37.34135,
           "status": "way_found",
-          "nominatim_api_seconds": 0.40352810453623533,
+          "nominatim_api_seconds": 0.38011956214904785,
           "osm_way_id": 28463446,
           "nominatim": {
             "osm_type": "way",
@@ -542,15 +555,15 @@
             "type": "primary",
             "display_name": "Coleman Avenue, Rose Garden, San Jose, Santa Clara County, California, 95126, United States"
           },
-          "response_queue_seconds": 0.011256901547312737,
-          "nominatim_processing_seconds": 1.4500692486763e-06
+          "response_queue_seconds": 0.017750116996467113,
+          "nominatim_processing_seconds": 3.069639205932617e-05
         },
         {
           "route_coordinate_index": 40,
           "route_longitude": -121.91089,
           "route_latitude": 37.3424,
           "status": "way_found",
-          "nominatim_api_seconds": 0.30678435415029526,
+          "nominatim_api_seconds": 0.6505724228918552,
           "osm_way_id": 28463243,
           "nominatim": {
             "osm_type": "way",
@@ -559,15 +572,15 @@
             "type": "primary",
             "display_name": "Coleman Avenue, College Park, Rose Garden, San Jose, Santa Clara County, California, 95126, United States"
           },
-          "response_queue_seconds": 0.009557844139635563,
-          "nominatim_processing_seconds": 3.427453339099884e-05
+          "response_queue_seconds": 0.023006918840110302,
+          "nominatim_processing_seconds": 0.002412061206996441
         },
         {
           "route_coordinate_index": 46,
           "route_longitude": -121.91346,
           "route_latitude": 37.34085,
           "status": "way_found",
-          "nominatim_api_seconds": 0.2879958925768733,
+          "nominatim_api_seconds": 0.10079555958509445,
           "osm_way_id": 48102862,
           "nominatim": {
             "osm_type": "way",
@@ -576,15 +589,15 @@
             "type": "secondary",
             "display_name": "West Taylor Street, College Park, Rose Garden, San Jose, Santa Clara County, California, 95126, United States"
           },
-          "response_queue_seconds": 0.016951550729572773,
-          "nominatim_processing_seconds": 3.2918527722358704e-05
+          "response_queue_seconds": 0.0007324628531932831,
+          "nominatim_processing_seconds": 2.3927539587020874e-05
         },
         {
           "route_coordinate_index": 52,
           "route_longitude": -121.91933,
           "route_latitude": 37.33782,
           "status": "way_found",
-          "nominatim_api_seconds": 0.07724251411855221,
+          "nominatim_api_seconds": 0.4235390843823552,
           "osm_way_id": 417048993,
           "nominatim": {
             "osm_type": "way",
@@ -593,8 +606,8 @@
             "type": "primary",
             "display_name": "The Alameda, College Park, Rose Garden, San Jose, Santa Clara County, California, 95126, United States"
           },
-          "response_queue_seconds": 0.0008426029235124588,
-          "nominatim_processing_seconds": 2.866610884666443e-05
+          "response_queue_seconds": 0.015131286345422268,
+          "nominatim_processing_seconds": 3.5490840673446655e-05
         }
       ],
       "way_results": [
@@ -615,8 +628,7 @@
           },
           "node_count": 13,
           "validation_reason": "highway=primary",
-          "overpass_api_seconds": 9.721119192428887,
-          "overpass_processing_seconds": 4.461035132408142e-06
+          "overpass_processing_seconds": 5.122274160385132e-06
         },
         {
           "osm_way_id": 28463243,
@@ -635,8 +647,7 @@
           },
           "node_count": 8,
           "validation_reason": "highway=primary",
-          "overpass_api_seconds": 8.695320580154657,
-          "overpass_processing_seconds": 0.0003359634429216385
+          "overpass_processing_seconds": 7.040798664093018e-07
         },
         {
           "osm_way_id": 28463446,
@@ -654,15 +665,33 @@
           },
           "node_count": 9,
           "validation_reason": "highway=primary",
-          "overpass_api_seconds": 1.0729275709018111,
-          "overpass_processing_seconds": 0.0007061809301376343
+          "overpass_processing_seconds": 5.299225449562073e-07
         },
         {
           "osm_way_id": 48102862,
-          "status": "request_failed",
-          "error": "Request to https://overpass-api.de/api/interpreter failed after 2 attempt(s): 429 Client Error: Too Many Requests for url: https://overpass-api.de/api/interpreter",
-          "overpass_api_seconds": 25.989059784449637,
-          "overpass_processing_seconds": 0.0
+          "status": "accepted",
+          "tags": {
+            "highway": "secondary",
+            "lanes": "3",
+            "maxspeed": "35 mph",
+            "name": "West Taylor Street",
+            "name:etymology": "Zachary Taylor",
+            "name:etymology:wikidata": "Q11896",
+            "oneway": "yes",
+            "sidewalk:left": "no",
+            "sidewalk:right": "separate",
+            "surface": "asphalt",
+            "tiger:cfcc": "A41",
+            "tiger:county": "Santa Clara, CA",
+            "tiger:name_base": "Taylor",
+            "tiger:name_direction_prefix": "W",
+            "tiger:name_type": "St",
+            "turn:lanes": "left||",
+            "wikidata": "Q107302077"
+          },
+          "node_count": 3,
+          "validation_reason": "highway=secondary",
+          "overpass_processing_seconds": 4.5634806156158447e-07
         },
         {
           "osm_way_id": 157756547,
@@ -679,8 +708,7 @@
           },
           "node_count": 5,
           "validation_reason": "highway=primary",
-          "overpass_api_seconds": 13.22148117236793,
-          "overpass_processing_seconds": 0.0019280826672911644
+          "overpass_processing_seconds": 4.6938657760620117e-07
         },
         {
           "osm_way_id": 360441702,
@@ -707,8 +735,7 @@
           },
           "node_count": 6,
           "validation_reason": "highway=tertiary",
-          "overpass_api_seconds": 1.089785285294056,
-          "overpass_processing_seconds": 0.0015352312475442886
+          "overpass_processing_seconds": 3.809109330177307e-07
         },
         {
           "osm_way_id": 416909217,
@@ -734,15 +761,34 @@
           },
           "node_count": 3,
           "validation_reason": "highway=secondary",
-          "overpass_api_seconds": 8.46532192453742,
-          "overpass_processing_seconds": 0.0009118225425481796
+          "overpass_processing_seconds": 4.516914486885071e-07
         },
         {
           "osm_way_id": 417048993,
-          "status": "request_failed",
-          "error": "Request to https://overpass-api.de/api/interpreter failed after 2 attempt(s): 429 Client Error: Too Many Requests for url: https://overpass-api.de/api/interpreter",
-          "overpass_api_seconds": 19.112813715822995,
-          "overpass_processing_seconds": 0.0
+          "status": "accepted",
+          "tags": {
+            "hgv": "designated",
+            "hgv:national_network": "terminal_access",
+            "highway": "primary",
+            "lanes": "2",
+            "maxspeed": "35 mph",
+            "name": "The Alameda",
+            "old_ref": "US 101;CA 82",
+            "oneway": "yes",
+            "parking:both": "no",
+            "sidewalk:left": "no",
+            "sidewalk:right": "separate",
+            "source:hgv:national_network": "Caltrans http://www.dot.ca.gov/hq/traffops/trucks/truckmap/",
+            "source:maxspeed": "survey",
+            "surface": "asphalt",
+            "tiger:cfcc": "A41",
+            "tiger:county": "Santa Clara, CA",
+            "tiger:name_base": "The Alameda",
+            "wikidata": "Q89651347"
+          },
+          "node_count": 4,
+          "validation_reason": "highway=primary",
+          "overpass_processing_seconds": 5.466863512992859e-07
         },
         {
           "osm_way_id": 931293096,
@@ -758,48 +804,56 @@
           },
           "node_count": 9,
           "validation_reason": "highway=primary",
-          "overpass_api_seconds": 12.05865396372974,
-          "overpass_processing_seconds": 0.0005443189293146133
+          "overpass_processing_seconds": 3.4458935260772705e-07
+        }
+      ],
+      "overpass_batches": [
+        {
+          "requested_way_count": 9,
+          "returned_way_count": 9,
+          "failed_way_count": 0,
+          "overpass_api_seconds": 1.4293235056102276
         }
       ],
       "summary": {
         "nominatim_api": {
           "count": 10,
-          "total_seconds": 3.738986073061824,
-          "mean_seconds": 0.3738986073061824,
-          "median_seconds": 0.2637225314974785,
-          "max_seconds": 1.5662403022870421
+          "total_seconds": 3.2425673604011536,
+          "mean_seconds": 0.32425673604011535,
+          "median_seconds": 0.35210080817341805,
+          "max_seconds": 0.6505724228918552
         },
         "response_queue": {
           "count": 10,
-          "total_seconds": 22.9913508053869,
-          "mean_seconds": 2.29913508053869,
-          "median_seconds": 1.9090335182845592,
-          "max_seconds": 5.459917347878218
+          "total_seconds": 3.2404598649591208,
+          "mean_seconds": 0.3240459864959121,
+          "median_seconds": 0.01644070167094469,
+          "max_seconds": 2.1906408378854394
         },
         "nominatim_processing": {
           "count": 10,
-          "total_seconds": 0.00012434273958206177,
-          "mean_seconds": 1.2434273958206177e-05,
-          "median_seconds": 5.209818482398987e-06,
-          "max_seconds": 3.427453339099884e-05
+          "total_seconds": 0.004000748507678509,
+          "mean_seconds": 0.00040007485076785085,
+          "median_seconds": 3.137392923235893e-05,
+          "max_seconds": 0.002412061206996441
         },
         "overpass_api": {
-          "count": 9,
-          "total_seconds": 99.42648318968713,
-          "mean_seconds": 11.047387021076348,
-          "median_seconds": 9.721119192428887,
-          "max_seconds": 25.989059784449637
+          "count": 1,
+          "total_seconds": 1.4293235056102276,
+          "mean_seconds": 1.4293235056102276,
+          "median_seconds": 1.4293235056102276,
+          "max_seconds": 1.4293235056102276
         },
         "overpass_processing": {
           "count": 9,
-          "total_seconds": 0.005966060794889927,
-          "mean_seconds": 0.0006628956438766585,
-          "median_seconds": 0.0005443189293146133,
-          "max_seconds": 0.0019280826672911644
+          "total_seconds": 9.005889296531677e-06,
+          "mean_seconds": 1.0006543662812974e-06,
+          "median_seconds": 4.6938657760620117e-07,
+          "max_seconds": 5.122274160385132e-06
         },
         "ways_returned": 9,
-        "accepted_ways": 7,
+        "overpass_batch_count": 1,
+        "accepted_ways": 9,
         "review_required_ways": 0
       }
     }
