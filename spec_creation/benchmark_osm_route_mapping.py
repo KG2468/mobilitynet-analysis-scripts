@@ -7,7 +7,7 @@ time independently:
 
 * Nominatim reverse-API response time;
 * local Nominatim result parsing;
-* Overpass way-and-node response time; and
+* one batched Overpass way-and-node response time; and
 * local Nominatim response processing time; and
 * local tag validation/node processing time.
 
@@ -17,7 +17,9 @@ Nominatim request every ``--nominatim-delay-seconds`` without waiting for prior
 responses. Completed responses are enqueued immediately; separate processes
 dequeue and parse them in true parallel. Overpass timings remain a separately
 reported phase, so the benchmark can identify whether response latency, local
-processing, or Overpass lookup is the bottleneck.
+processing, or Overpass lookup is the bottleneck. The benchmark always uses a
+cache-free batched Overpass query so it measures the network improvement; the
+production mapper additionally persists its successful way/node results.
 
 The default is deliberately a small, evenly distributed sample of ten route
 coordinates. Increase ``--max-points`` only when the target service permits it.
@@ -216,6 +218,42 @@ def way_timed(session, args, way_id):
     }
 
 
+def ways_batched_timed(session, args, way_ids):
+    """Fetch all benchmark ways with a cache-free batched Overpass request."""
+    api_start = time.monotonic()
+    ways_by_id, failures = mapper.get_ways_with_nodes_batched(
+        session, args.overpass_url, way_ids, args.retries,
+        cache_dir=None, batch_size=args.overpass_batch_size)
+    batch_record = {
+        "requested_way_count": len(way_ids),
+        "returned_way_count": len(ways_by_id),
+        "failed_way_count": len(failures),
+        "overpass_api_seconds": time.monotonic() - api_start,
+    }
+    way_records = []
+    for way_id in way_ids:
+        if way_id in failures:
+            way_records.append({
+                "osm_way_id": way_id,
+                "status": "request_failed",
+                "error": failures[way_id],
+                "overpass_processing_seconds": 0.0,
+            })
+            continue
+        processing_start = time.monotonic()
+        way = ways_by_id[way_id]
+        accepted, validation_reason = mapper.validate_way_tags(way["tags"])
+        way_records.append({
+            "osm_way_id": way_id,
+            "status": "accepted" if accepted else "review_required",
+            "tags": way["tags"],
+            "node_count": len(way["nodes"]),
+            "validation_reason": validation_reason,
+            "overpass_processing_seconds": time.monotonic() - processing_start,
+        })
+    return batch_record, way_records
+
+
 def summarize_seconds(records, field):
     values = [record[field] for record in records if field in record]
     if not values:
@@ -234,18 +272,17 @@ def run_sequential(args, sampled_points):
     session = new_session(args.email)
     limiter = StartRateLimiter(args.nominatim_delay_seconds)
     point_records = []
-    way_records = []
-    completed_way_ids = set()
     started = time.monotonic()
 
     for route_index, point in sampled_points:
         point_record = reverse_timed(session, args, route_index, point, limiter)
         point_records.append(point_record)
-        way_id = point_record.get("osm_way_id")
-        if way_id is not None and way_id not in completed_way_ids:
-            way_records.append(way_timed(session, args, way_id))
-            completed_way_ids.add(way_id)
-    return format_result("sequential", started, point_records, way_records)
+    way_ids = sorted({record["osm_way_id"] for record in point_records if record.get("osm_way_id") is not None})
+    overpass_batches, way_records = [], []
+    if way_ids:
+        overpass_batch, way_records = ways_batched_timed(session, args, way_ids)
+        overpass_batches.append(overpass_batch)
+    return format_result("sequential", started, point_records, way_records, overpass_batches)
 
 
 def run_threaded(args, sampled_points):
@@ -294,25 +331,29 @@ def run_threaded(args, sampled_points):
         processor.join()
 
     way_ids = sorted({record["osm_way_id"] for record in point_records if record.get("osm_way_id") is not None})
-    with ThreadPoolExecutor(max_workers=args.overpass_workers, thread_name_prefix="overpass") as executor:
-        way_records = list(executor.map(lambda way_id: way_timed(new_session(args.email), args, way_id), way_ids))
-    return format_result("threaded", started, point_records, way_records)
+    overpass_batches, way_records = [], []
+    if way_ids:
+        overpass_batch, way_records = ways_batched_timed(new_session(args.email), args, way_ids)
+        overpass_batches.append(overpass_batch)
+    return format_result("threaded", started, point_records, way_records, overpass_batches)
 
 
-def format_result(mode, started, point_records, way_records):
+def format_result(mode, started, point_records, way_records, overpass_batches):
     """Return timing totals and raw measurements for a single benchmark mode."""
     return {
         "mode": mode,
         "wall_seconds": time.monotonic() - started,
         "route_point_results": point_records,
         "way_results": way_records,
+        "overpass_batches": overpass_batches,
         "summary": {
             "nominatim_api": summarize_seconds(point_records, "nominatim_api_seconds"),
             "response_queue": summarize_seconds(point_records, "response_queue_seconds"),
             "nominatim_processing": summarize_seconds(point_records, "nominatim_processing_seconds"),
-            "overpass_api": summarize_seconds(way_records, "overpass_api_seconds"),
+            "overpass_api": summarize_seconds(overpass_batches, "overpass_api_seconds"),
             "overpass_processing": summarize_seconds(way_records, "overpass_processing_seconds"),
             "ways_returned": len(way_records),
+            "overpass_batch_count": len(overpass_batches),
             "accepted_ways": sum(record["status"] == "accepted" for record in way_records),
             "review_required_ways": sum(record["status"] == "review_required" for record in way_records),
         },
@@ -325,7 +366,7 @@ def print_comparison(results):
         summary = result["summary"]
         print("%s: wall=%.3fs; Nominatim total=%.3fs; response-queue total=%.3fs; "
               "local processing total=%.3fs; Overpass total=%.3fs; "
-              "Nominatim median=%.3fs; Overpass median=%.3fs; unique ways=%d" % (
+              "Nominatim median=%.3fs; Overpass batch median=%.3fs; unique ways=%d" % (
                   result["mode"], result["wall_seconds"],
                   summary["nominatim_api"].get("total_seconds", 0.0),
                   summary["response_queue"].get("total_seconds", 0.0),
@@ -350,12 +391,12 @@ def parse_arguments():
                         help="Nominatim reverse API endpoint")
     parser.add_argument("--overpass-url", default=mapper.DEFAULT_OVERPASS_URL,
                         help="Overpass API endpoint")
+    parser.add_argument("--overpass-batch-size", type=int, default=100,
+                        help="Uncached OSM ways per batched Overpass query (default: 100)")
     parser.add_argument("--request-workers", type=int, default=4,
                         help="Maximum simultaneously in-flight Nominatim HTTP requests (default: 4)")
     parser.add_argument("--processor-workers", type=int, default=2,
                         help="Processes that dequeue and parse completed Nominatim responses (default: 2)")
-    parser.add_argument("--overpass-workers", type=int, default=1,
-                        help="Threaded Overpass workers (default: 1)")
     parser.add_argument("--nominatim-delay-seconds", type=float, default=1.1,
                         help="Minimum interval between Nominatim request starts")
     parser.add_argument("--retries", type=int, default=1, help="HTTP retries per request")
@@ -367,7 +408,7 @@ def main():
     args = parse_arguments()
     if args.max_points < 2:
         raise ValueError("--max-points must be at least 2")
-    if args.request_workers < 1 or args.processor_workers < 1 or args.overpass_workers < 1:
+    if args.request_workers < 1 or args.processor_workers < 1 or args.overpass_batch_size < 1:
         raise ValueError("worker counts must be positive")
     if args.retries < 0 or args.nominatim_delay_seconds < 0:
         raise ValueError("retries and delay must not be negative")
@@ -397,7 +438,7 @@ def main():
             "overpass_url": args.overpass_url,
             "request_workers": args.request_workers,
             "processor_workers": args.processor_workers,
-            "overpass_workers": args.overpass_workers,
+            "overpass_batch_size": args.overpass_batch_size,
             "nominatim_delay_seconds": args.nominatim_delay_seconds,
             "retries": args.retries,
         },

@@ -28,6 +28,7 @@ different JSON file within that directory.
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -150,6 +151,118 @@ def get_way_with_nodes(session, overpass_url, way_id, retries):
     }
 
 
+def chunked(items, size):
+    """Yield fixed-size lists without retaining an additional full copy."""
+    for start in range(0, len(items), size):
+        yield items[start:start + size]
+
+
+def way_cache_path(cache_dir, way_id):
+    return cache_dir / ("%d.json" % way_id)
+
+
+def load_cached_way(cache_dir, way_id):
+    """Return one validated cached way, or ``None`` for a cache miss/corruption."""
+    if cache_dir is None:
+        return None
+    cache_path = way_cache_path(cache_dir, way_id)
+    try:
+        with cache_path.open() as cache_file:
+            way = json.load(cache_file)
+        if way.get("osm_way_id") != way_id or not isinstance(way.get("nodes"), list):
+            return None
+        return way
+    except (FileNotFoundError, OSError, ValueError, TypeError):
+        return None
+
+
+def write_cached_way(cache_dir, way):
+    """Atomically persist a reusable way/node result after a successful lookup."""
+    if cache_dir is None:
+        return
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = way_cache_path(cache_dir, way["osm_way_id"])
+    temporary_path = cache_path.with_suffix(".tmp-%d" % os.getpid())
+    with temporary_path.open("w") as cache_file:
+        json.dump(way, cache_file, separators=(",", ":"))
+        cache_file.write("\n")
+    os.replace(temporary_path, cache_path)
+
+
+def parse_overpass_ways(payload, requested_way_ids):
+    """Convert a batched Overpass response into complete ordered way records."""
+    ways_by_id = {
+        element["id"]: element
+        for element in payload.get("elements", [])
+        if element.get("type") == "way" and element.get("id") in requested_way_ids
+    }
+    nodes_by_id = {
+        element["id"]: element
+        for element in payload.get("elements", [])
+        if element.get("type") == "node"
+    }
+    parsed_ways = {}
+    for way_id, way in ways_by_id.items():
+        missing_node_ids = [node_id for node_id in way.get("nodes", []) if node_id not in nodes_by_id]
+        if missing_node_ids:
+            continue
+        parsed_ways[way_id] = {
+            "osm_way_id": way_id,
+            "tags": way.get("tags", {}),
+            "nodes": [
+                {
+                    "osm_node_id": node_id,
+                    "longitude": nodes_by_id[node_id]["lon"],
+                    "latitude": nodes_by_id[node_id]["lat"],
+                }
+                for node_id in way.get("nodes", [])
+            ],
+        }
+    return parsed_ways
+
+
+def get_ways_with_nodes_batched(session, overpass_url, way_ids, retries,
+                                cache_dir=None, batch_size=100):
+    """Fetch uncached OSM ways in batches, saving complete way-node results to disk.
+
+    Returns ``(ways_by_id, failures)``. Cached ways are returned immediately;
+    only cache misses are sent to Overpass. A failed batch is recorded without
+    discarding successfully cached or previously fetched ways.
+    """
+    if batch_size < 1:
+        raise ValueError("Overpass batch size must be positive")
+
+    unique_way_ids = sorted(set(way_ids))
+    ways_by_id = {}
+    missing_way_ids = []
+    for way_id in unique_way_ids:
+        cached_way = load_cached_way(cache_dir, way_id)
+        if cached_way is None:
+            missing_way_ids.append(way_id)
+        else:
+            ways_by_id[way_id] = cached_way
+
+    failures = {}
+    for way_id_batch in chunked(missing_way_ids, batch_size):
+        query = "[out:json][timeout:180];way(id:%s);out body;>;out body;" % \
+            ",".join(str(way_id) for way_id in way_id_batch)
+        try:
+            payload = request_json(session, overpass_url, data={"data": query}, retries=retries, timeout=240)
+        except RuntimeError as error:
+            for way_id in way_id_batch:
+                failures[way_id] = str(error)
+            continue
+
+        parsed_ways = parse_overpass_ways(payload, set(way_id_batch))
+        for way_id, way in parsed_ways.items():
+            ways_by_id[way_id] = way
+            write_cached_way(cache_dir, way)
+        for way_id in way_id_batch:
+            if way_id not in parsed_ways:
+                failures[way_id] = "Overpass returned no complete way/node record"
+    return ways_by_id, failures
+
+
 def validate_way_tags(tags):
     """Return an acceptance boolean and specific reason for the way tags."""
     if "highway" in tags:
@@ -176,32 +289,15 @@ def result_summary(result):
 
 
 def build_dataset(args, points):
-    """Reverse-geocode route points and assemble accepted ways, nodes, and transitions."""
+    """Reverse-geocode route points, then batch/cached-fetch their OSM ways."""
     session = requests.Session()
     session.headers.update({
         "User-Agent": "OpenPATH ground-truth OSM mapper/1.0 (%s)" % args.email,
         "Accept-Language": "en",
     })
 
-    ways_by_id = {}
     route_point_matches = []
-    review_required = []
-    transitions = []
-    previous_way_id = None
     last_request_started = None
-
-    def interrupt_previous_way(route_coordinate_index, reason):
-        """Record when a review item breaks an otherwise accepted way sequence."""
-        nonlocal previous_way_id
-        if previous_way_id is not None:
-            transitions.append({
-                "at_route_coordinate_index": route_coordinate_index,
-                "from_osm_way_id": previous_way_id,
-                "to_osm_way_id": None,
-                "transition_type": "interrupted_by_review_required",
-                "reason": reason,
-            })
-        previous_way_id = None
 
     for index, (longitude, latitude) in enumerate(points):
         if last_request_started is not None:
@@ -221,8 +317,6 @@ def build_dataset(args, points):
         except RuntimeError as error:
             match = {**base_match, "status": "review_required", "reason": "Nominatim request failed: %s" % error}
             route_point_matches.append(match)
-            review_required.append(match)
-            interrupt_previous_way(index, match["reason"])
             continue
 
         summary = result_summary(result)
@@ -234,58 +328,41 @@ def build_dataset(args, points):
                 "nominatim": summary,
             }
             route_point_matches.append(match)
-            review_required.append(match)
-            interrupt_previous_way(index, match["reason"])
             continue
 
         way_id = int(result["osm_id"])
-        if way_id not in ways_by_id:
-            try:
-                way = get_way_with_nodes(session, args.overpass_url, way_id, args.retries)
-            except RuntimeError as error:
-                match = {
-                    **base_match,
-                    "status": "review_required",
-                    "reason": "Cannot retrieve returned OSM way: %s" % error,
-                    "nominatim": summary,
-                }
-                route_point_matches.append(match)
-                review_required.append(match)
-                interrupt_previous_way(index, match["reason"])
-                continue
-            accepted, reason = validate_way_tags(way["tags"])
-            ways_by_id[way_id] = {**way, "accepted": accepted, "validation_reason": reason}
-
-        way = ways_by_id[way_id]
-        if not way["accepted"]:
-            match = {
-                **base_match,
-                "status": "review_required",
-                "osm_way_id": way_id,
-                "way_tags": way["tags"],
-                "reason": "Returned way %d failed validation: %s" % (way_id, way["validation_reason"]),
-                "nominatim": summary,
-            }
-            route_point_matches.append(match)
-            review_required.append(match)
-            interrupt_previous_way(index, match["reason"])
-            continue
-
-        match = {
+        route_point_matches.append({
             **base_match,
-            "status": "accepted",
+            "status": "pending_way_lookup",
             "osm_way_id": way_id,
             "nominatim": summary,
-        }
-        route_point_matches.append(match)
-        if previous_way_id is not None and way_id != previous_way_id:
-            transitions.append({
-                "at_route_coordinate_index": index,
-                "from_osm_way_id": previous_way_id,
-                "to_osm_way_id": way_id,
-                "transition_type": "accepted_way_change",
-            })
-        previous_way_id = way_id
+        })
+
+    pending_way_ids = [
+        match["osm_way_id"] for match in route_point_matches
+        if match["status"] == "pending_way_lookup"
+    ]
+    ways_by_id, way_failures = get_ways_with_nodes_batched(
+        session, args.overpass_url, pending_way_ids, args.retries,
+        args.way_cache_dir, args.overpass_batch_size)
+
+    for match in route_point_matches:
+        if match["status"] != "pending_way_lookup":
+            continue
+        way_id = match["osm_way_id"]
+        if way_id not in ways_by_id:
+            match["status"] = "review_required"
+            match["reason"] = "Cannot retrieve returned OSM way: %s" % way_failures.get(
+                way_id, "unknown batched Overpass failure")
+            continue
+        way = ways_by_id[way_id]
+        accepted, reason = validate_way_tags(way["tags"])
+        if accepted:
+            match["status"] = "accepted"
+            continue
+        match["status"] = "review_required"
+        match["way_tags"] = way["tags"]
+        match["reason"] = "Returned way %d failed validation: %s" % (way_id, reason)
 
     accepted_way_ids = {match["osm_way_id"] for match in route_point_matches if match["status"] == "accepted"}
     ways = []
@@ -301,6 +378,29 @@ def build_dataset(args, points):
                 if match.get("osm_way_id") == way_id and match["status"] == "accepted"
             ],
         })
+    transitions = []
+    previous_way_id = None
+    for match in route_point_matches:
+        if match["status"] == "accepted":
+            way_id = match["osm_way_id"]
+            if previous_way_id is not None and way_id != previous_way_id:
+                transitions.append({
+                    "at_route_coordinate_index": match["route_coordinate_index"],
+                    "from_osm_way_id": previous_way_id,
+                    "to_osm_way_id": way_id,
+                    "transition_type": "accepted_way_change",
+                })
+            previous_way_id = way_id
+        elif previous_way_id is not None:
+            transitions.append({
+                "at_route_coordinate_index": match["route_coordinate_index"],
+                "from_osm_way_id": previous_way_id,
+                "to_osm_way_id": None,
+                "transition_type": "interrupted_by_review_required",
+                "reason": match["reason"],
+            })
+            previous_way_id = None
+    review_required = [match for match in route_point_matches if match["status"] == "review_required"]
     return ways, route_point_matches, transitions, review_required
 
 
@@ -321,6 +421,10 @@ def parse_arguments():
                         help="Nominatim reverse API endpoint")
     parser.add_argument("--overpass-url", default=DEFAULT_OVERPASS_URL,
                         help="Overpass interpreter endpoint for way-node lookup")
+    parser.add_argument("--way-cache-dir", type=Path,
+                        help="Persistent cache for complete OSM way/node records (default: <output-dir>/cache/ways)")
+    parser.add_argument("--overpass-batch-size", type=int, default=100,
+                        help="Uncached OSM ways per Overpass query (default: 100)")
     parser.add_argument("--nominatim-delay-seconds", type=float, default=1.1,
                         help="Minimum time between Nominatim calls (default: 1.1)")
     parser.add_argument("--retries", type=int, default=3,
@@ -330,10 +434,12 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
+    if args.way_cache_dir is None:
+        args.way_cache_dir = args.output_dir / "cache" / "ways"
     if args.nominatim_delay_seconds < 1.0 and "nominatim.openstreetmap.org" in args.nominatim_url:
         raise ValueError("Public Nominatim requires at least one second between requests")
-    if args.retries < 0:
-        raise ValueError("--retries cannot be negative")
+    if args.retries < 0 or args.overpass_batch_size < 1:
+        raise ValueError("--retries cannot be negative and --overpass-batch-size must be positive")
 
     label = load_label(args.spec)
     route = get_route_feature(label, args.trip, args.leg, args.route_index)
