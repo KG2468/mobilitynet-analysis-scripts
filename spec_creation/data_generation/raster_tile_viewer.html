@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenPATH Raster Tile Viewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    :root { --ink: #17212b; --paper: #f4f1e8; --panel: #fffdfa; --line: #c7c1b4; --accent: #007d73; --muted: #5e665e; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font: 14px/1.4 Georgia, "Times New Roman", serif; }
+    header { display: flex; align-items: baseline; gap: 18px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    h1 { margin: 0; font-size: 20px; font-weight: 600; } header span { color: var(--muted); }
+    main { display: grid; grid-template-columns: 290px minmax(768px, 1fr) 360px; gap: 18px; padding: 18px; min-height: calc(100vh - 52px); }
+    aside { align-self: start; max-height: calc(100vh - 88px); overflow: auto; padding: 12px; border: 1px solid var(--line); background: var(--panel); }
+    h2 { margin: 0 0 8px; font-size: 16px; } p, .help { margin: 7px 0; color: var(--muted); font-size: 13px; }
+    input { width: 100%; padding: 7px 8px; border: 1px solid var(--line); background: white; font: inherit; }
+    #list { margin-top: 10px; } .trajectory { width: 100%; margin: 5px 0; padding: 8px; color: var(--ink); text-align: left; border: 1px solid var(--line); background: white; cursor: pointer; font: inherit; }
+    .trajectory:hover, .trajectory.active { border-color: var(--accent); background: #e8f4ef; }.trajectory small { display: block; color: var(--muted); }
+    section { position: relative; min-width: 768px; } #map { width: 768px; height: 768px; border: 1px solid #6d695e; box-shadow: 0 1px 4px #8b877a; }
+    #details { position: absolute; z-index: 1000; bottom: 12px; left: 12px; max-width: 480px; padding: 8px 10px; color: var(--ink); background: rgba(255, 253, 250, .94); border: 1px solid var(--line); font-size: 12px; }
+    #overview { width: 334px; height: 420px; margin-top: 10px; border: 1px solid #6d695e; background: #1c2630; }.legend { margin-top: 9px; font-size: 12px; color: var(--muted); }.swatch { display: inline-block; width: 18px; border-top: 4px solid; margin: 0 5px 2px 0; vertical-align: middle; }
+    .leaflet-control-attribution { font-family: Georgia, "Times New Roman", serif; }
+    @media (max-width: 1500px) { main { grid-template-columns: 290px minmax(768px, 1fr); } #overview-panel { grid-column: 1 / -1; } #overview { width: min(100%, 768px); height: 300px; } }
+    @media (max-width: 1120px) { main { grid-template-columns: 1fr; } aside { max-height: 260px; } section { overflow: auto; } }
+  </style>
+</head>
+<body>
+<header><h1>OpenPATH Raster Tile Viewer</h1><span>Manual cache explorer · fixed zoom 15 · 3 × 3 raster tiles</span></header>
+<main>
+  <aside>
+    <h2>Trajectory Tiles</h2>
+    <p>Choose a sampled trajectory tile or pan the map. Only tiles visible in this local map are requested and cached.</p>
+    <input id="filter" placeholder="Filter spec, phone, or source">
+    <div id="list"></div>
+  </aside>
+  <section>
+    <div id="map"></div>
+    <div id="details">Loading trajectory samples…</div>
+  </section>
+  <aside id="overview-panel">
+    <h2>Coverage Overview</h2>
+    <p id="coverage-status">Checking local raster cache…</p>
+    <div id="overview"></div>
+    <div class="legend"><span class="swatch" style="border-color:#ff3dba"></span>missing cache coverage<br><span class="swatch" style="border-color:#3fd8ff"></span>fully cached</div>
+  </aside>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('map', { zoomControl: true, minZoom: 15, maxZoom: 15, zoomSnap: 1, zoomDelta: 1, inertia: true }).setView([37.79, -122.39], 15);
+const tileLayer = L.tileLayer('/tiles/{z}/{x}/{y}.png', { tileSize: 256, minZoom: 15, maxZoom: 15, keepBuffer: 0, updateWhenIdle: true, attribution: '' }).addTo(map);
+const overview = L.map('overview', { zoomControl: true, attributionControl: false, minZoom: 6, maxZoom: 12 }).setView([37.79, -122.39], 8);
+const trajectoryLayer = L.layerGroup().addTo(map);
+const selectedLayer = L.layerGroup().addTo(map);
+const overviewLayer = L.layerGroup().addTo(overview);
+const overviewSelectedLayer = L.layerGroup().addTo(overview);
+let records = [], activeIndex = null;
+const $ = id => document.getElementById(id);
+
+function point(point) { return [point.latitude, point.longitude]; }
+function label(record) { return `${record.spec_id} · ${record.phone_os} / ${record.phone_label}`; }
+function drawAll() {
+  trajectoryLayer.clearLayers();
+  records.forEach(record => {
+    const line = L.polyline(record.tile_points.map(point), { color: '#007d73', weight: 2, opacity: .38 });
+    line.on('click', () => selectRecord(record.index));
+    line.addTo(trajectoryLayer);
+  });
+}
+function drawOverview() {
+  overviewLayer.clearLayers(); overviewSelectedLayer.clearLayers();
+  records.forEach(record => {
+    const missing = record.missing_tile_count > 0;
+    const line = L.polyline(record.tile_points.map(point), {
+      color: missing ? '#ff3dba' : '#3fd8ff', weight: missing ? 3 : 1.5, opacity: missing ? .92 : .38
+    });
+    line.bindTooltip(`${missing ? 'Missing' : 'Cached'}: ${label(record)} · ${record.missing_tile_count}/${record.required_tile_count} tiles missing`);
+    line.on('click', () => selectRecord(record.index));
+    line.addTo(overviewLayer);
+  });
+  const missingCount = records.filter(record => record.missing_tile_count > 0).length;
+  $('coverage-status').textContent = `${missingCount} of ${records.length} trajectory tiles still need cache coverage. Click a bright path to guide the caching map.`;
+  if (records.length) overview.fitBounds(L.latLngBounds(records.flatMap(record => record.tile_points.map(point))).pad(.08), { animate: false });
+}
+function selectRecord(index, pan=true) {
+  activeIndex = index;
+  const record = records[index];
+  selectedLayer.clearLayers(); overviewSelectedLayer.clearLayers();
+  const points = record.tile_points.map(point);
+  const line = L.polyline(points, { color: '#cc3f1d', weight: 4, opacity: .95 }).addTo(selectedLayer);
+  L.polyline(points, { color: '#f6c85f', weight: 5, opacity: 1 }).addTo(overviewSelectedLayer);
+  L.circleMarker(points[0], { radius: 5, color: '#17212b', fillColor: '#f6c85f', fillOpacity: 1, weight: 2 }).addTo(selectedLayer);
+  if (pan) map.setView([(record.bounds_wgs84.south + record.bounds_wgs84.north) / 2, (record.bounds_wgs84.west + record.bounds_wgs84.east) / 2], 15, { animate: false });
+  $('details').innerHTML = `<strong>${escapeHtml(label(record))}</strong><br>${escapeHtml(record.tile_id)}<br>${record.tile_point_count} continuous GPS points · ${record.missing_tile_count}/${record.required_tile_count} raster tiles missing`;
+  renderList();
+  line.bringToFront();
+}
+function renderList() {
+  const text = $('filter').value.trim().toLowerCase();
+  const list = $('list'); list.innerHTML = '';
+  records.filter(record => `${record.spec_id} ${record.phone_os} ${record.phone_label} ${record.source_id}`.toLowerCase().includes(text)).sort((left, right) => right.missing_tile_count - left.missing_tile_count).forEach(record => {
+    const button = document.createElement('button'); button.className = `trajectory${record.index === activeIndex ? ' active' : ''}`;
+    button.innerHTML = `${escapeHtml(label(record))}<small>${record.tile_point_count} points · ${record.missing_tile_count}/${record.required_tile_count} tiles missing</small>`;
+    button.onclick = () => selectRecord(record.index); list.appendChild(button);
+  });
+}
+function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character])); }
+$('filter').oninput = renderList;
+(async () => {
+  try {
+    const response = await fetch('/api/trajectories');
+    if (!response.ok) throw new Error(await response.text());
+    const payload = await response.json();
+    records = payload.trajectories;
+    tileLayer.options.attribution = payload.attribution;
+    drawAll(); drawOverview(); renderList();
+    if (records.length) selectRecord(records[0]);
+    else $('details').textContent = 'No trajectory records were found.';
+  } catch (error) { $('details').textContent = error.message; }
+})();
+</script>
+</body>
+</html>
