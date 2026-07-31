@@ -77,7 +77,8 @@ def train_epoch(model, loader, optimizer, device) -> float:
     total_squared_error = 0.0
     total_values = 0
     for batch in loader:
-        batch = batch.to(device)
+        # Optimization: Asynchronous transfer if using pinned host memory
+        batch = batch.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
         reconstruction, _ = model(batch.x, batch.lpe, batch.edge_index, batch.batch)
         loss = functional.mse_loss(reconstruction, batch.x)
@@ -95,7 +96,7 @@ def evaluate(model, loader, device) -> float:
     total_values = 0
     with torch.no_grad():
         for batch in loader:
-            batch = batch.to(device)
+            batch = batch.to(device, non_blocking=True)
             reconstruction, _ = model(batch.x, batch.lpe, batch.edge_index, batch.batch)
             loss = functional.mse_loss(reconstruction, batch.x)
             total_squared_error += loss.item() * batch.x.numel()
@@ -146,17 +147,44 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     print("Training %d road networks with %d-fold cross-validation on %s" % (
         len(raw_dataset), FOLD_COUNT, device))
+    
+    use_vram_preload = device.type in ("cuda", "mps")
+
     for fold, test_indices in enumerate(fold_indices(len(raw_dataset), args.seed), start=1):
         test_index_set = set(test_indices)
         train_indices = [index for index in range(len(raw_dataset)) if index not in test_index_set]
+        
         standardizer = FeatureStandardizer.fit(Subset(raw_dataset, train_indices))
+        
+        # 1. Transform dataset
         dataset = [standardizer.transform(raw_dataset[index]) for index in range(len(raw_dataset))]
+        
+        # 2. Optimization: Move dataset directly into Accelerator Memory (VRAM)
+        # Eliminates CPU-to-GPU PCIe transfer during the training loop.
+        if use_vram_preload:
+            dataset = [data.to(device) for data in dataset]
+            num_workers = 0  # GPU tensors cannot be unpickled across CPU worker processes
+        else:
+            num_workers = args.workers
+
+        # 3. Optimization: Configure DataLoader for zero-copy / pinned memory
         train_loader = DataLoader(
-            Subset(dataset, train_indices), batch_size=args.batch_size, shuffle=True,
-            num_workers=args.workers)
+            Subset(dataset, train_indices),
+            batch_size=args.batch_size,
+            shuffle=True,
+            num_workers=num_workers,
+            pin_memory=(not use_vram_preload and device.type == "cuda"),
+            persistent_workers=(num_workers > 0),
+        )
         test_loader = DataLoader(
-            Subset(dataset, test_indices), batch_size=args.batch_size, shuffle=False,
-            num_workers=args.workers)
+            Subset(dataset, test_indices),
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            pin_memory=(not use_vram_preload and device.type == "cuda"),
+            persistent_workers=(num_workers > 0),
+        )
+
         model = EncoderOnlyLPEGAE(
             in_channels=len(DEFAULT_NODE_FEATURES),
             lpe_dim=args.lpe_dim,
@@ -177,6 +205,7 @@ def main() -> None:
                 print("fold=%d epoch=%d/%d train_mse=%.8f test_mse=%.8f" % (
                     fold, epoch, args.epochs, train_mse, test_mse))
 
+        # Checkpoint serialization remains on CPU for clean portability
         checkpoint = {
             "model_state_dict": model.state_dict(),
             "feature_standardizer": standardizer.state_dict(),
