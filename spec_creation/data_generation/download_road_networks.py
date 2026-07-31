@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Download highway and rail network graphs for every swept trajectory tile.
+"""Create per-tile road-network line graphs from the local Bay Area OSM XML.
 
-The script calls ``osmnx.graph.graph_from_bbox`` with the same highway and
-railway conditions used by ``overpass_tile_source.py``. It saves each graph as a
-GraphML file under ``datasets/road_networks/graphs`` and records outcomes in a
-JSONL manifest, allowing interrupted batches to resume.
+The parent process loads ``bay_area.osm`` once, keeps all highway ways plus the
+requested railway ways, and removes every other OSM way. Workers inherit the
+filtered graph, truncate tiles by edge/bounding-box intersection (not by node
+containment), enrich edges, convert each tile to a line graph, and save it with
+the established ``<tile_id>.graphml`` convention. No API requests occur.
 
 Run from ``mobilitynet-analysis-scripts``::
 
@@ -13,24 +14,27 @@ Run from ``mobilitynet-analysis-scripts``::
 
 import argparse
 import json
-import time
+import multiprocessing
+from collections import defaultdict
 from pathlib import Path
 
+import networkx as nx
 import osmnx as ox
-from pyproj import CRS, Transformer
-import requests
+from shapely.geometry import LineString, box
+from shapely.strtree import STRtree
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_OSM_XML = REPOSITORY_ROOT / "bay_area.osm"
 DEFAULT_TRAJECTORIES = REPOSITORY_ROOT / "datasets" / "trajectories" / "trajectory_samples.jsonl"
 DEFAULT_OUTPUT_DIR = REPOSITORY_ROOT / "datasets" / "road_networks"
-DEFAULT_OVERPASS_URL = "https://overpass-api.de/api"
-MINIMUM_PARENT_SIDE_METERS = 15_000
-MAXIMUM_PARENT_SIDE_METERS = 20_000
-CUSTOM_FILTER = [
-    "[highway]",
-    '[railway~"^(subway|rail|tram|light_rail)$"][service!~"^(yard|siding)$"]',
-]
+RAILWAY_VALUES = {"subway", "rail", "tram", "light_rail", "lightrail"}
+EXCLUDED_RAIL_SERVICES = {"yard", "siding"}
+EXCLUDE_KEYS = {"d12", "d17", "d18", "d19", "d20", "name", "bridge", "ref", "service", "access"}
+
+_PARENT_GRAPH = None
+_EDGE_RECORDS = None
+_EDGE_INDEX = None
 
 
 def trajectory_records(path):
@@ -45,282 +49,206 @@ def trajectory_records(path):
 
 
 def bbox_for_record(record):
-    """Return an OSMnx v2 bbox in (left, bottom, right, top) order."""
+    """Return a tile bbox in (left, bottom, right, top) order."""
     bounds = record["bounds_wgs84"]
-    return (bounds["west"], bounds["south"], bounds["east"], bounds["north"])
+    return bounds["west"], bounds["south"], bounds["east"], bounds["north"]
 
 
 def graph_path(output_dir, tile_id):
-    """Return the stable GraphML location for a trajectory tile."""
+    """Return the established GraphML location for a trajectory tile."""
     return output_dir / (tile_id + ".graphml")
 
 
+def include_edge(data):
+    """Return whether an OSM edge satisfies the requested highway/rail filter."""
+    if data.get("highway") is not None:
+        return True
+    return (
+        data.get("railway") in RAILWAY_VALUES
+        and data.get("service") not in EXCLUDED_RAIL_SERVICES
+    )
+
+
+def filter_parent_graph(graph):
+    """Return a copy containing only the requested highway and railway edges."""
+    included_edges = [
+        (source, destination, key)
+        for source, destination, key, data in graph.edges(keys=True, data=True)
+        if include_edge(data)
+    ]
+    filtered = graph.edge_subgraph(included_edges).copy()
+    filtered.remove_nodes_from(list(nx.isolates(filtered)))
+    return filtered
+
+
+def edge_geometry(graph, source, destination, data):
+    """Return an edge's geometry, creating a straight line if absent."""
+    geometry = data.get("geometry")
+    if geometry is not None:
+        return geometry
+    source_node = graph.nodes[source]
+    destination_node = graph.nodes[destination]
+    return LineString([
+        (float(source_node["x"]), float(source_node["y"])),
+        (float(destination_node["x"]), float(destination_node["y"])),
+    ])
+
+
+def truncate_graph_by_edge_bbox(graph, bbox, edge_records, edge_index):
+    """Include every edge intersecting a tile bbox and all its connected nodes."""
+    left, bottom, right, top = bbox
+    tile_polygon = box(left, bottom, right, top)
+    edge_indices = edge_index.query(tile_polygon, predicate="intersects")
+    intersecting_edges = [edge_records[int(index)][0] for index in edge_indices]
+    if not intersecting_edges:
+        raise ValueError("No graph edges intersect the requested bounding box.")
+    subgraph = graph.edge_subgraph(intersecting_edges).copy()
+    return subgraph
+
+
+def enrich_and_line_graph(graph):
+    """Fill edge geometry/coordinates and return its filtered-attribute line graph."""
+    for source, destination, key, data in graph.edges(keys=True, data=True):
+        start_x, start_y = float(graph.nodes[source]["x"]), float(graph.nodes[source]["y"])
+        end_x, end_y = float(graph.nodes[destination]["x"]), float(graph.nodes[destination]["y"])
+        data["start_x"] = start_x
+        data["start_y"] = start_y
+        data["end_x"] = end_x
+        data["end_y"] = end_y
+        if data.get("geometry") is None:
+            data["geometry"] = LineString([(start_x, start_y), (end_x, end_y)])
+
+    line_graph = nx.line_graph(graph)
+    for source, destination, key, data in graph.edges(keys=True, data=True):
+        edge_node = source, destination, key
+        if edge_node in line_graph.nodes:
+            line_graph.nodes[edge_node].update({
+                attribute: value for attribute, value in data.items()
+                if attribute not in EXCLUDE_KEYS
+            })
+    return line_graph
+
+
+def build_edge_index(graph):
+    """Build the parent-edge STRtree once for worker truncation queries."""
+    records = [
+        ((source, destination, key), edge_geometry(graph, source, destination, data))
+        for source, destination, key, data in graph.edges(keys=True, data=True)
+    ]
+    geometries = [geometry for _, geometry in records]
+    return records, geometries, STRtree(geometries)
+
+
+def initialize_worker(parent_graph):
+    """Initialize one worker with the already-filtered parent graph."""
+    global _PARENT_GRAPH, _EDGE_RECORDS, _EDGE_INDEX
+    _PARENT_GRAPH = parent_graph
+    _EDGE_RECORDS, _, _EDGE_INDEX = build_edge_index(parent_graph)
+
+
+def process_record(record, output_dir):
+    """Extract, enrich, line-graph, and save one trajectory tile graph."""
+    tile_id = record["tile_id"]
+    output_path = graph_path(output_dir, tile_id)
+    tile_graph = truncate_graph_by_edge_bbox(
+        _PARENT_GRAPH,
+        bbox_for_record(record),
+        _EDGE_RECORDS,
+        _EDGE_INDEX,
+    )
+    line_graph = enrich_and_line_graph(tile_graph)
+    ox.io.save_graphml(line_graph, output_path)
+    return {
+        "tile_id": tile_id,
+        "bbox": bbox_for_record(record),
+        "edge_count": len(tile_graph.edges),
+        "line_graph_edge_count": len(line_graph.edges),
+        "line_graph_node_count": len(line_graph.nodes),
+        "path": str(output_path.relative_to(output_dir)),
+        "status": "written",
+    }
+
+
+def worker_main(task):
+    """Run one worker task and return a serializable success/failure record."""
+    record, output_dir = task
+    try:
+        return process_record(record, Path(output_dir))
+    except Exception as error:
+        return {
+            "tile_id": record["tile_id"],
+            "bbox": bbox_for_record(record),
+            "error": str(error),
+            "status": "failed",
+        }
+
+
 def append_manifest(path, entry):
-    """Append one durable download result to the batch manifest."""
+    """Append one durable per-tile result."""
     with path.open("a") as output_file:
         output_file.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
-def graph_for_bbox(bbox):
-    """Download one simplified, largest-component road and rail network graph."""
-    return ox.graph.graph_from_bbox(
-        bbox=bbox,
-        network_type="all",
-        simplify=True,
-        retain_all=False,
-        truncate_by_edge=False,
-        custom_filter=CUSTOM_FILTER,
-    )
-
-
-def utm_bounds_for_record(record):
-    """Return an unprojected tile's stored UTM bounds as west, south, east, north."""
-    west, south, east, north = record["bounds_utm_m"]
-    return west, south, east, north
-
-
-def union_bounds(first_bounds, second_bounds):
-    """Return the minimal rectangle containing two UTM rectangles."""
-    return (
-        min(first_bounds[0], second_bounds[0]),
-        min(first_bounds[1], second_bounds[1]),
-        max(first_bounds[2], second_bounds[2]),
-        max(first_bounds[3], second_bounds[3]),
-    )
-
-
-def dimensions_meters(bounds):
-    """Return a UTM rectangle's width and height in metres."""
-    return bounds[2] - bounds[0], bounds[3] - bounds[1]
-
-
-def fits_maximum_parent(bounds):
-    """Return whether a UTM rectangle fits within the 20 km parent limit."""
-    width, height = dimensions_meters(bounds)
-    return width <= MAXIMUM_PARENT_SIDE_METERS and height <= MAXIMUM_PARENT_SIDE_METERS
-
-
-def padded_parent_bounds(bounds):
-    """Pad a group rectangle to at least 15 km per side without exceeding 20 km."""
-    west, south, east, north = bounds
-    width, height = dimensions_meters(bounds)
-    if width < MINIMUM_PARENT_SIDE_METERS:
-        padding = (MINIMUM_PARENT_SIDE_METERS - width) / 2
-        west -= padding
-        east += padding
-    if height < MINIMUM_PARENT_SIDE_METERS:
-        padding = (MINIMUM_PARENT_SIDE_METERS - height) / 2
-        south -= padding
-        north += padding
-    parent_bounds = (west, south, east, north)
-    if not fits_maximum_parent(parent_bounds):
-        raise ValueError("Could not pad parent bounds within the 20 km limit: %s" % (parent_bounds,))
-    return parent_bounds
-
-
-def candidate_score(group_bounds, candidate_bounds):
-    """Prioritize candidates that satisfy 15 km coverage with the smallest expansion."""
-    expanded = union_bounds(group_bounds, candidate_bounds)
-    width, height = dimensions_meters(expanded)
-    minimum_deficit = max(0, MINIMUM_PARENT_SIDE_METERS - width) + max(
-        0, MINIMUM_PARENT_SIDE_METERS - height)
-    area = width * height
-    return minimum_deficit, area, expanded
-
-
-def greedy_parent_groups(records):
-    """Greedily group UTM tile rectangles into 15-20 km parent query areas."""
-    records_by_epsg = {}
-    for record in records:
-        records_by_epsg.setdefault(record["epsg"], []).append(record)
-
-    groups = []
-    for epsg, projected_records in sorted(records_by_epsg.items()):
-        remaining = sorted(projected_records, key=lambda record: (
-            utm_bounds_for_record(record)[0], utm_bounds_for_record(record)[1], record["tile_id"]))
-        while remaining:
-            group = [remaining.pop(0)]
-            group_bounds = utm_bounds_for_record(group[0])
-            while True:
-                eligible = []
-                for candidate in remaining:
-                    expanded = union_bounds(group_bounds, utm_bounds_for_record(candidate))
-                    if fits_maximum_parent(expanded):
-                        eligible.append((candidate_score(group_bounds, utm_bounds_for_record(candidate)), candidate))
-                if not eligible:
-                    break
-                eligible.sort(key=lambda item: (item[0][0], item[0][1], item[1]["tile_id"]))
-                _, selected = eligible[0]
-                group.append(selected)
-                remaining.remove(selected)
-                group_bounds = union_bounds(group_bounds, utm_bounds_for_record(selected))
-                width, height = dimensions_meters(group_bounds)
-                if width >= MINIMUM_PARENT_SIDE_METERS and height >= MINIMUM_PARENT_SIDE_METERS:
-                    break
-            groups.append({
-                "epsg": epsg,
-                "records": group,
-                "bounds_utm_m": padded_parent_bounds(group_bounds),
-            })
-    return groups
-
-
-def wgs84_bbox_from_utm(bounds, epsg):
-    """Project a UTM parent rectangle to an OSMnx bbox in left/bottom/right/top order."""
-    transformer = Transformer.from_crs(CRS.from_epsg(epsg), CRS.from_epsg(4326), always_xy=True)
-    west, south, east, north = bounds
-    corners = [transformer.transform(x, y) for x, y in (
-        (west, south), (west, north), (east, south), (east, north))]
-    longitudes, latitudes = zip(*corners)
-    return min(longitudes), min(latitudes), max(longitudes), max(latitudes)
-
-
-def parent_graph_path(output_dir, parent_index, epsg):
-    """Return the stable GraphML location for a grouped parent query area."""
-    return output_dir / "parent_graphs" / ("parent_%04d_epsg%d.graphml" % (parent_index, epsg))
-
-
-def is_connection_failure(error):
-    """Return whether an error means the Overpass endpoint cannot be reached."""
-    return isinstance(error, requests.exceptions.ConnectionError)
-
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--osm-xml", type=Path, default=DEFAULT_OSM_XML)
     parser.add_argument("--trajectories", type=Path, default=DEFAULT_TRAJECTORIES)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--delay-seconds", type=float, default=1.0,
-                        help="Pause after each Overpass request (default: %(default)s)")
-    parser.add_argument("--overpass-url", default=DEFAULT_OVERPASS_URL,
-                        help="OSMnx Overpass API base URL (default: %(default)s)")
-    parser.add_argument("--request-timeout", type=int, default=180,
-                        help="OSMnx request timeout in seconds (default: %(default)s)")
-    parser.add_argument("--max-consecutive-connection-failures", type=int, default=2,
-                        help="Stop during an endpoint outage after this many failures")
-    parser.add_argument("--max-parent-areas", type=int,
-                        help="Limit parent graph queries for a controlled partial run")
-    parser.add_argument("--overwrite", action="store_true",
-                        help="Redownload graphs whose GraphML files already exist")
+    parser.add_argument("--workers", type=int, default=max(1, multiprocessing.cpu_count() // 2),
+                        help="Number of worker processes (default: half the CPUs)")
+    parser.add_argument("--max-tiles", type=int,
+                        help="Limit tile outputs for a controlled partial run")
     return parser.parse_args()
 
 
 def main():
     args = parse_arguments()
-    if args.delay_seconds < 0:
-        raise ValueError("--delay-seconds must not be negative")
-    if args.max_parent_areas is not None and args.max_parent_areas <= 0:
-        raise ValueError("--max-parent-areas must be positive")
-    if args.request_timeout <= 0:
-        raise ValueError("--request-timeout must be positive")
-    if args.max_consecutive_connection_failures <= 0:
-        raise ValueError("--max-consecutive-connection-failures must be positive")
+    if args.max_tiles is not None and args.max_tiles <= 0:
+        raise ValueError("--max-tiles must be positive")
+    if args.workers <= 0:
+        raise ValueError("--workers must be positive")
+    if not args.osm_xml.is_file():
+        raise FileNotFoundError("OSM XML not found: %s" % args.osm_xml)
     if not args.trajectories.is_file():
         raise FileNotFoundError("Trajectory dataset not found: %s" % args.trajectories)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    tile_manifest_path = args.output_dir / "download_manifest.jsonl"
-    parent_manifest_path = args.output_dir / "parent_download_manifest.jsonl"
-    parent_areas = greedy_parent_groups(list(trajectory_records(args.trajectories)))
-    downloaded = skipped = failed = parent_downloaded = parent_skipped = 0
-    consecutive_connection_failures = 0
-    ox.settings.overpass_url = args.overpass_url
-    ox.settings.requests_timeout = args.request_timeout
-    ox.settings.user_agent = "OpenPathTrajectoryNetworks/1.0"
-    # ox.settings.use_cache = True
-    print("Using Overpass endpoint: %s" % ox.settings.overpass_url)
+    manifest_path = args.output_dir / "download_manifest.jsonl"
+    manifest_path.unlink(missing_ok=True)
+    print("Loading offline parent graph: %s" % args.osm_xml, flush=True)
+    parent_graph = ox.graph_from_xml(args.osm_xml)
+    print("Loaded %d nodes and %d edges." % (len(parent_graph.nodes), len(parent_graph.edges)), flush=True)
+    filtered_graph = filter_parent_graph(parent_graph)
+    del parent_graph
+    print("Filtered to %d nodes and %d highway/rail edges." % (
+        len(filtered_graph.nodes), len(filtered_graph.edges)), flush=True)
 
-    print("Planned %d grouped parent areas for %d trajectory tiles." % (
-        len(parent_areas), sum(len(parent_area["records"]) for parent_area in parent_areas)))
+    records = list(trajectory_records(args.trajectories))
+    if args.max_tiles is not None:
+        records = records[:args.max_tiles]
+    tasks = ((record, str(args.output_dir)) for record in records)
+    written = failed = 0
 
-    for parent_index, parent_area in enumerate(parent_areas, start=1):
-        if args.max_parent_areas is not None and parent_index > args.max_parent_areas:
-            break
-        pending_records = [
-            record for record in parent_area["records"]
-            if args.overwrite or not graph_path(args.output_dir, record["tile_id"]).is_file()
-        ]
-        if not pending_records:
-            skipped += len(parent_area["records"])
-            parent_skipped += 1
-            continue
-        parent_bbox = wgs84_bbox_from_utm(parent_area["bounds_utm_m"], parent_area["epsg"])
-        parent_path = parent_graph_path(args.output_dir, parent_index, parent_area["epsg"])
-        try:
-            if parent_path.is_file() and not args.overwrite:
-                parent_graph = ox.io.load_graphml(parent_path)
-                parent_skipped += 1
+    context = multiprocessing.get_context("fork")
+    with context.Pool(
+        processes=args.workers,
+        initializer=initialize_worker,
+        initargs=(filtered_graph,),
+        maxtasksperchild=25,
+    ) as pool:
+        for index, result in enumerate(pool.imap_unordered(worker_main, tasks), start=1):
+            append_manifest(manifest_path, result)
+            if result["status"] == "written":
+                written += 1
+                print("written %d/%d: %s (%d line nodes, %d line edges)" % (
+                    index, len(records), result["tile_id"],
+                    result["line_graph_node_count"], result["line_graph_edge_count"]), flush=True)
             else:
-                parent_path.parent.mkdir(parents=True, exist_ok=True)
-                parent_graph = graph_for_bbox(parent_bbox)
-                ox.io.save_graphml(parent_graph, parent_path)
-                parent_downloaded += 1
-            append_manifest(parent_manifest_path, {
-                "parent_index": parent_index,
-                "bbox_utm_m": parent_area["bounds_utm_m"],
-                "bbox_wgs84": parent_bbox,
-                "edge_count": len(parent_graph.edges),
-                "node_count": len(parent_graph.nodes),
-                "overpass_url": args.overpass_url,
-                "path": str(parent_path.relative_to(args.output_dir)),
-                "tile_count": len(parent_area["records"]),
-                "status": "downloaded",
-            })
-            consecutive_connection_failures = 0
-            print("parent %d: %d tiles (%d nodes, %d edges)" % (
-                parent_index, len(parent_area["records"]), len(parent_graph.nodes),
-                len(parent_graph.edges)))
-            for record in pending_records:
-                tile_id = record["tile_id"]
-                output_path = graph_path(args.output_dir, tile_id)
-                try:
-                    subgraph = ox.truncate.truncate_graph_bbox(
-                        parent_graph, bbox=bbox_for_record(record), truncate_by_edge=False)
-                    ox.io.save_graphml(subgraph, output_path)
-                    append_manifest(tile_manifest_path, {
-                        "tile_id": tile_id,
-                        "bbox": bbox_for_record(record),
-                        "edge_count": len(subgraph.edges),
-                        "node_count": len(subgraph.nodes),
-                        "parent_index": parent_index,
-                        "parent_path": str(parent_path.relative_to(args.output_dir)),
-                        "path": str(output_path.relative_to(args.output_dir)),
-                        "status": "extracted",
-                    })
-                    downloaded += 1
-                except Exception as error:
-                    append_manifest(tile_manifest_path, {
-                        "tile_id": tile_id,
-                        "bbox": bbox_for_record(record),
-                        "error": str(error),
-                        "parent_index": parent_index,
-                        "status": "failed",
-                    })
-                    failed += 1
-                    print("failed extraction: %s: %s" % (tile_id, error))
-        except Exception as error:
-            append_manifest(parent_manifest_path, {
-                "parent_index": parent_index,
-                "bbox_utm_m": parent_area["bounds_utm_m"],
-                "bbox_wgs84": parent_bbox,
-                "error": str(error),
-                "overpass_url": args.overpass_url,
-                "status": "failed",
-            })
-            failed += 1
-            print("failed parent %d: %s" % (parent_index, error))
-            if is_connection_failure(error):
-                consecutive_connection_failures += 1
-                if consecutive_connection_failures >= args.max_consecutive_connection_failures:
-                    print("Stopping after %d consecutive endpoint connection failures." % (
-                        consecutive_connection_failures))
-                    break
-            else:
-                consecutive_connection_failures = 0
-        if args.delay_seconds:
-            time.sleep(args.delay_seconds)
+                failed += 1
+                print("failed %d/%d: %s: %s" % (
+                    index, len(records), result["tile_id"], result["error"]), flush=True)
 
-    print("parents_downloaded=%d parents_reused=%d tiles_extracted=%d tiles_skipped=%d failed=%d" % (
-        parent_downloaded, parent_skipped, downloaded, skipped, failed))
+    print("written=%d failed=%d" % (written, failed), flush=True)
     if failed:
         raise SystemExit(1)
 
