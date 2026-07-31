@@ -30,7 +30,13 @@ DEFAULT_TRAJECTORIES = REPOSITORY_ROOT / "datasets" / "trajectories" / "trajecto
 DEFAULT_OUTPUT_DIR = REPOSITORY_ROOT / "datasets" / "road_networks"
 RAILWAY_VALUES = {"subway", "rail", "tram", "light_rail", "lightrail"}
 EXCLUDED_RAIL_SERVICES = {"yard", "siding"}
-EXCLUDE_KEYS = {"d12", "d17", "d18", "d19", "d20", "name", "bridge", "ref", "service", "access"}
+EXCLUDE_KEYS = {
+    "d3", "d5", "d6", "d7", "d8", "d12", "d16", "d17", "d18", "d19", "d20", "d21", "d22",
+    "d23", "d24", "d25", "d26", "d27",
+    "name", "bridge", "ref", "service", "access", "surface", "timestamp", "version", "tags", "osm_type",
+    "footway", "lit", "sidewalk", "oneway:bicycle", "area", "bicycle", "foot", "segregated", "cycleway",
+    "smoothness", "motor_vehicle", "tunnel",
+}
 
 _PARENT_GRAPH = None
 _EDGE_RECORDS = None
