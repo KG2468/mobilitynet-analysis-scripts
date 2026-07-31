@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d11" for="node" attr.name="end_y" attr.type="string" />
+  <key id="d10" for="node" attr.name="end_x" attr.type="string" />
+  <key id="d9" for="node" attr.name="start_y" attr.type="string" />
+  <key id="d8" for="node" attr.name="start_x" attr.type="string" />
+  <key id="d7" for="node" attr.name="geometry" attr.type="string" />
+  <key id="d6" for="node" attr.name="length" attr.type="string" />
+  <key id="d5" for="node" attr.name="reversed" attr.type="string" />
+  <key id="d4" for="node" attr.name="oneway" attr.type="string" />
+  <key id="d3" for="node" attr.name="maxspeed" attr.type="string" />
+  <key id="d2" for="node" attr.name="lanes" attr.type="string" />
+  <key id="d1" for="node" attr.name="highway" attr.type="string" />
+  <key id="d0" for="node" attr.name="osmid" attr.type="string" />
+  <graph edgedefault="directed">
+    <node id="(32927563, 645559609, 0)">
+      <data key="d0">[50690291, 179235221, 661905446]</data>
+      <data key="d1">motorway</data>
+      <data key="d2">5</data>
+      <data key="d3">50 mph</data>
+      <data key="d4">True</data>
+      <data key="d5">False</data>
+      <data key="d6">3221.89168859831</data>
+      <data key="d7">LINESTRING (-122.390902 37.7860172, -122.3906949 37.7861827, -122.3903709 37.7864781, -122.3672612 37.8080581, -122.3671945 37.808121)</data>
+      <data key="d8">-122.390902</data>
+      <data key="d9">37.7860172</data>
+      <data key="d10">-122.3671945</data>
+      <data key="d11">37.808121</data>
+    </node>
+    <node id="(645559609, 65285375, 0)">
+      <data key="d0">[839972872, 255330064, 11414754, 255330063]</data>
+      <data key="d1">construction</data>
+      <data key="d2">1</data>
+      <data key="d3">50 mph</data>
+      <data key="d4">True</data>
+      <data key="d5">False</data>
+      <data key="d6">398.17837786312003</data>
+      <data key="d7">LINESTRING (-122.3671945 37.808121, -122.3668865 37.808578, -122.3668151 37.8087275, -122.3668029 37.8088278, -122.3668105 37.8088547, -122.3668272 37.8088859, -122.3668511 37.8089157, -122.3668865 37.8089455, -122.3669201 37.8089662, -122.3669659 37.8089827, -122.3670358 37.8089909, -122.3671091 37.8089834, -122.3677342 37.8088245, -122.3678135 37.8088117, -122.3678939 37.8088052, -122.3679713 37.8088078, -122.3680551 37.8088126, -122.3681909 37.8088334, -122.3683757 37.8088792, -122.368503 37.80892, -122.3686112 37.8089546, -122.3687349 37.8089966, -122.3694798 37.809245, -122.3695298 37.8092613, -122.3695827 37.8092771, -122.3697081 37.8093112, -122.3700772 37.8093926)</data>
+      <data key="d8">-122.3671945</data>
+      <data key="d9">37.808121</data>
+      <data key="d10">-122.3700772</data>
+      <data key="d11">37.8093926</data>
+    </node>
+    <node id="(645559609, 4377020523, 0)">
+      <data key="d0">[52527662, 52721870, 50691047]</data>
+      <data key="d1">motorway</data>
+      <data key="d2">5</data>
+      <data key="d3">['50 mph', '40 mph']</data>
+      <data key="d4">True</data>
+      <data key="d5">False</data>
+      <data key="d6">340.47607945508014</data>
+      <data key="d7">LINESTRING (-122.3671945 37.808121, -122.3663349 37.8089273, -122.3662409 37.809019, -122.3650432 37.8101361, -122.3646896 37.8104574)</data>
+      <data key="d8">-122.3671945</data>
+      <data key="d9">37.808121</data>
+      <data key="d10">-122.3646896</data>
+      <data key="d11">37.8104574</data>
+    </node>
+    <node id="(2443845209, 65310547, 0)">
+      <data key="d0">[11415208, 23874736, 497579295]</data>
+      <data key="d1">motorway</data>
+      <data key="d2">5</data>
+      <data key="d3">50 mph</data>
+      <data key="d4">True</data>
+      <data key="d5">False</data>
+      <data key="d6">383.54325580494054</data>
+      <data key="d7">LINESTRING (-122.3644707 37.8107111, -122.364722 37.8104737, -122.3650722 37.8101563, -122.3663226 37.8089835, -122.3672912 37.8080783)</data>
+      <data key="d8">-122.3644707</data>
+      <data key="d9">37.8107111</data>
+      <data key="d10">-122.3672912</data>
+      <data key="d11">37.8080783</data>
+    </node>
+    <node id="(65310547, 65286228, 0)">
+      <data key="d0">[1343738800, 8921938]</data>
+      <data key="d1">motorway</data>
+      <data key="d2">5</data>
+      <data key="d3">50 mph</data>
+      <data key="d4">True</data>
+      <data key="d5">False</data>
+      <data key="d6">3313.531017972054</data>
+      <data key="d7">LINESTRING (-122.3672912 37.8080783, -122.3904007 37.7864982, -122.3907307 37.7862034, -122.3912305 37.7858313, -122.3918298 37.7854734)</data>
+      <data key="d8">-122.3672912</data>
+      <data key="d9">37.8080783</data>
+      <data key="d10">-122.3918298</data>
+      <data key="d11">37.7854734</data>
+    </node>
+    <node id="(65339986, 65310547, 0)">
+      <data key="d0">[662177840, 662177841, 119057701]</data>
+      <data key="d1">construction</data>
+      <data key="d2">1</data>
+      <data key="d3">50 mph</data>
+      <data key="d4">True</data>
+      <data key="d5">False</data>
+      <data key="d6">300.37032742530255</data>
+      <data key="d7">LINESTRING (-122.3688594 37.8089821, -122.3687378 37.8089008, -122.3685932 37.8088516, -122.3684777 37.8088197, -122.3683747 37.8088042, -122.3682876 37.8087989, -122.3682193 37.8088021, -122.3681327 37.8088101, -122.3680209 37.8088345, -122.3677719 37.8088755, -122.3672148 37.8090176, -122.3671624 37.8090296, -122.3671148 37.8090384, -122.3670653 37.809044, -122.3670197 37.8090424, -122.366971 37.8090327, -122.3669288 37.8090185, -122.3668859 37.8089988, -122.3668522 37.808974, -122.3668246 37.8089435, -122.3668009 37.8089074, -122.3667875 37.8088705, -122.366782 37.8088313, -122.3667868 37.8087897, -122.366798 37.8087518, -122.3668134 37.8087178, -122.3668335 37.8086845, -122.3668693 37.8086337, -122.3670569 37.808398, -122.3672912 37.8080783)</data>
+      <data key="d8">-122.3688594</data>
+      <data key="d9">37.8089821</data>
+      <data key="d10">-122.3672912</data>
+      <data key="d11">37.8080783</data>
+    </node>
+    <edge source="(32927563, 645559609, 0)" target="(645559609, 65285375, 0)" id="0" />
+    <edge source="(32927563, 645559609, 0)" target="(645559609, 4377020523, 0)" id="0" />
+    <edge source="(2443845209, 65310547, 0)" target="(65310547, 65286228, 0)" id="0" />
+    <edge source="(65339986, 65310547, 0)" target="(65310547, 65286228, 0)" id="0" />
+  </graph>
+</graphml>
