@@ -16,6 +16,8 @@ import json
 import random
 from pathlib import Path
 
+from attr import has
+
 import torch
 from torch import optim
 from torch.nn import functional as functional
@@ -43,6 +45,7 @@ except ImportError:
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATA_DIR = REPOSITORY_ROOT / "datasets" / "road_networks"
 DEFAULT_OUTPUT_DIR = REPOSITORY_ROOT / "datasets" / "gae_training"
+DEFAULT_CACHE_PATH = REPOSITORY_ROOT / "datasets" / "gae_training" / "data.pt"
 FOLD_COUNT = 5
 
 
@@ -115,6 +118,7 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--cache-path", type=Path, default=DEFAULT_CACHE_PATH)
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
@@ -143,7 +147,14 @@ def main() -> None:
 
     set_seed(args.seed)
     device = accelerator_device(args.device)
-    raw_dataset = RoadNetworkDataset(graph_paths, lpe_dim=args.lpe_dim)
+    
+    if args.cache_path.exists():
+        raw_dataset = torch.load(args.cache_path)
+    else:
+        raw_dataset = RoadNetworkDataset(graph_paths, lpe_dim=args.lpe_dim)
+        if hasattr(raw_dataset, "__len__"):
+            raw_dataset = [raw_dataset[index] for index in range(len(raw_dataset))]
+        torch.save(raw_dataset, args.cache_path)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     print("Training %d road networks with %d-fold cross-validation on %s" % (
         len(raw_dataset), FOLD_COUNT, device))
