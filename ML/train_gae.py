@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+"""Train the encoder-only LPE graph autoencoder on road-network GraphML files.
+
+Run from ``mobilitynet-analysis-scripts``::
+
+    python ML/train_gae.py --epochs 50 --batch-size 16
+
+The script prefers CUDA, then Apple MPS, and finally CPU. Use ``--device`` to
+explicitly select one of ``cuda``, ``mps``, or ``cpu``.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import random
+from pathlib import Path
+
+import torch
+from torch import optim
+from torch.nn import functional as functional
+from torch.utils.data import Subset
+from torch_geometric.loader import DataLoader
+
+try:
+    from .gae import (
+        DEFAULT_NODE_FEATURES,
+        EncoderOnlyLPEGAE,
+        FeatureStandardizer,
+        RoadNetworkDataset,
+        training_metadata,
+    )
+except ImportError:
+    from gae import (
+        DEFAULT_NODE_FEATURES,
+        EncoderOnlyLPEGAE,
+        FeatureStandardizer,
+        RoadNetworkDataset,
+        training_metadata,
+    )
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DATA_DIR = REPOSITORY_ROOT / "datasets" / "road_networks"
+DEFAULT_OUTPUT_DIR = REPOSITORY_ROOT / "datasets" / "gae_training"
+FOLD_COUNT = 5
+
+
+def accelerator_device(requested_device: str) -> torch.device:
+    """Return the requested CUDA/MPS device, or select CUDA then MPS then CPU."""
+    available = {
+        "cuda": torch.cuda.is_available(),
+        "mps": torch.backends.mps.is_available(),
+        "cpu": True,
+    }
+    if requested_device != "auto":
+        if not available[requested_device]:
+            raise RuntimeError("Requested %s accelerator is unavailable" % requested_device)
+        return torch.device(requested_device)
+    for device_name in ("cuda", "mps", "cpu"):
+        if available[device_name]:
+            return torch.device(device_name)
+    raise RuntimeError("No supported compute device is available")
+
+
+def set_seed(seed: int) -> None:
+    """Configure reproducible randomness where supported by the accelerator."""
+    random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def train_epoch(model, loader, optimizer, device) -> float:
+    """Run one metadata-reconstruction epoch."""
+    model.train()
+    total_squared_error = 0.0
+    total_values = 0
+    for batch in loader:
+        batch = batch.to(device)
+        optimizer.zero_grad(set_to_none=True)
+        reconstruction, _ = model(batch.x, batch.lpe, batch.edge_index, batch.batch)
+        loss = functional.mse_loss(reconstruction, batch.x)
+        loss.backward()
+        optimizer.step()
+        total_squared_error += loss.item() * batch.x.numel()
+        total_values += batch.x.numel()
+    return total_squared_error / total_values
+
+
+def evaluate(model, loader, device) -> float:
+    """Return reconstruction MSE for the held-out fold."""
+    model.eval()
+    total_squared_error = 0.0
+    total_values = 0
+    with torch.no_grad():
+        for batch in loader:
+            batch = batch.to(device)
+            reconstruction, _ = model(batch.x, batch.lpe, batch.edge_index, batch.batch)
+            loss = functional.mse_loss(reconstruction, batch.x)
+            total_squared_error += loss.item() * batch.x.numel()
+            total_values += batch.x.numel()
+    return total_squared_error / total_values
+
+
+def fold_indices(item_count: int, seed: int) -> list[list[int]]:
+    """Return five deterministic held-out folds, each containing 20% of the data."""
+    indices = list(range(item_count))
+    random.Random(seed).shuffle(indices)
+    return [indices[fold::FOLD_COUNT] for fold in range(FOLD_COUNT)]
+
+
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--workers", type=int, default=0)
+    parser.add_argument("--lpe-dim", type=int, default=8)
+    parser.add_argument("--hidden-dim", type=int, default=128)
+    parser.add_argument("--max-graphs", type=int, default=None)
+    parser.add_argument("--device", choices=("auto", "cuda", "mps", "cpu"), default="auto")
+    parser.add_argument("--seed", type=int, default=20260731)
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_arguments()
+    if args.epochs <= 0 or args.batch_size <= 0 or args.lpe_dim < 0:
+        raise ValueError("--epochs and --batch-size must be positive; --lpe-dim cannot be negative")
+
+    graph_paths = sorted(args.data_dir.glob("*.graphml"))
+    if args.max_graphs is not None:
+        if args.max_graphs <= 0:
+            raise ValueError("--max-graphs must be positive when provided")
+        graph_paths = graph_paths[: args.max_graphs]
+    if len(graph_paths) < FOLD_COUNT:
+        raise ValueError("Need at least %d GraphML files for %d-fold cross-validation" % (
+            FOLD_COUNT, FOLD_COUNT))
+
+    set_seed(args.seed)
+    device = accelerator_device(args.device)
+    raw_dataset = RoadNetworkDataset(graph_paths, lpe_dim=args.lpe_dim)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    print("Training %d road networks with %d-fold cross-validation on %s" % (
+        len(raw_dataset), FOLD_COUNT, device))
+    for fold, test_indices in enumerate(fold_indices(len(raw_dataset), args.seed), start=1):
+        test_index_set = set(test_indices)
+        train_indices = [index for index in range(len(raw_dataset)) if index not in test_index_set]
+        standardizer = FeatureStandardizer.fit(Subset(raw_dataset, train_indices))
+        dataset = [standardizer.transform(raw_dataset[index]) for index in range(len(raw_dataset))]
+        train_loader = DataLoader(
+            Subset(dataset, train_indices), batch_size=args.batch_size, shuffle=True,
+            num_workers=args.workers)
+        test_loader = DataLoader(
+            Subset(dataset, test_indices), batch_size=args.batch_size, shuffle=False,
+            num_workers=args.workers)
+        model = EncoderOnlyLPEGAE(
+            in_channels=len(DEFAULT_NODE_FEATURES),
+            lpe_dim=args.lpe_dim,
+            hidden_dim=args.hidden_dim,
+            latent_dim=256,
+        ).to(device)
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+        fold_dir = args.output_dir / ("fold_%d" % fold)
+        fold_dir.mkdir(exist_ok=True)
+
+        with (fold_dir / "metrics.jsonl").open("w") as metrics_file:
+            for epoch in range(1, args.epochs + 1):
+                train_mse = train_epoch(model, train_loader, optimizer, device)
+                test_mse = evaluate(model, test_loader, device)
+                metrics = {"fold": fold, "epoch": epoch, "train_mse": train_mse, "test_mse": test_mse}
+                metrics_file.write(json.dumps(metrics) + "\n")
+                metrics_file.flush()
+                print("fold=%d epoch=%d/%d train_mse=%.8f test_mse=%.8f" % (
+                    fold, epoch, args.epochs, train_mse, test_mse))
+
+        checkpoint = {
+            "model_state_dict": model.state_dict(),
+            "feature_standardizer": standardizer.state_dict(),
+            "model_config": {
+                "in_channels": len(DEFAULT_NODE_FEATURES),
+                "lpe_dim": args.lpe_dim,
+                "hidden_dim": args.hidden_dim,
+                "latent_dim": 256,
+            },
+            "metadata": training_metadata(DEFAULT_NODE_FEATURES, args.lpe_dim),
+            "fold": fold,
+            "train_indices": train_indices,
+            "test_indices": test_indices,
+        }
+        torch.save(checkpoint, fold_dir / "model.pt")
+
+
+if __name__ == "__main__":
+    main()
