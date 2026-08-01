@@ -205,7 +205,12 @@ def main() -> None:
             latent_dim=256,
         ).to(device)
         optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-5)
+        if args.scheduler == "cosine":
+            scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-5)
+        elif args.scheduler == "restarts":
+            scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=args.epochs // 10, T_mult=1.5, eta_min=1e-5)
+        elif args.scheduler == "plateau":
+            scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.7, patience=5, min_lr=1e-5)
         fold_dir = args.output_dir / ("fold_%d" % fold)
         fold_dir.mkdir(exist_ok=True)
 
@@ -216,7 +221,10 @@ def main() -> None:
                 metrics = {"fold": fold, "epoch": epoch, "train_mse": train_mse, "test_mse": test_mse}
                 metrics_file.write(json.dumps(metrics) + "\n")
                 metrics_file.flush()
-                scheduler.step()
+                if args.scheduler == "plateau":
+                    scheduler.step(test_mse)
+                else:
+                    scheduler.step()
                 print("fold=%d epoch=%d/%d train_mse=%.8f test_mse=%.8f" % (
                     fold, epoch, args.epochs, train_mse, test_mse))
 
