@@ -22,7 +22,7 @@ from torch import Tensor, nn
 from torch.nn import functional as functional
 from torch.utils.data import Dataset
 from torch_geometric.data import Data
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn import GCNConv, LayerNorm
 from torch_geometric.transforms import AddLaplacianEigenvectorPE
 from torch_geometric.utils import softmax, scatter
 
@@ -252,11 +252,14 @@ class EncoderOnlyLPEGAE(nn.Module):
         lpe_dim: int = 8,
         hidden_dim: int = 128,
         latent_dim: int = 256,
+        num_layers: int = 4,
     ):
         super().__init__()
         self.lpe_proj = nn.Linear(lpe_dim, hidden_dim)
         self.enc_gcn1 = GCNConv(in_channels + hidden_dim, hidden_dim)
-        self.enc_gcn2 = GCNConv(hidden_dim, latent_dim)
+        self.enc_gcns = nn.ModuleList([GCNConv(hidden_dim, hidden_dim) for i in range(num_layers)])
+        self.enc_norm = nn.ModuleList([LayerNorm(hidden_dim) for i in range(num_layers)])
+        self.enc_gcnF = GCNConv(hidden_dim, latent_dim)
         self.pooling = TemperatureGlobalAttention(
             gate_nn=nn.Sequential(
                 nn.Linear(latent_dim, hidden_dim),
@@ -264,23 +267,40 @@ class EncoderOnlyLPEGAE(nn.Module):
                 nn.Linear(hidden_dim, 1),
             )
         )
-        self.dec_gcn1 = GCNConv(latent_dim, hidden_dim)
-        self.dec_gcn2 = GCNConv(hidden_dim, in_channels)
+
+        self.dec_proj = nn.Linear(latent_dim, hidden_dim)
+        self.dec_gcns = nn.ModuleList([GCNConv(hidden_dim, hidden_dim) for i in range(num_layers)])
+        self.dec_norm = nn.ModuleList([LayerNorm(hidden_dim) for i in range(num_layers)]) 
+        self.dec_gcnF = GCNConv(hidden_dim, in_channels)
+        
+        self.activation = lambda x: functional.leaky_relu(x, negative_slope=0.1)
 
     def encode(self, x: Tensor, lpe: Tensor, edge_index: Tensor, batch: Tensor) -> Tensor:
         """Encode batched nodes into one latent vector per graph."""
         if self.training:
             sign_flip = torch.randint(0, 2, (1, lpe.size(-1)), device=lpe.device, dtype=torch.long)
             lpe = lpe * (sign_flip.mul(2).sub(1).to(lpe.dtype))
-        lpe_embedding = functional.relu(self.lpe_proj(lpe))
-        hidden = functional.relu(self.enc_gcn1(torch.cat((x, lpe_embedding), dim=-1), edge_index))
-        hidden = functional.relu(self.enc_gcn2(hidden, edge_index))
-        return self.pooling(hidden, batch)
+        lpe_embedding = self.activation(self.lpe_proj(lpe))
+        hidden = self.activation(self.enc_gcn1(torch.cat((x, lpe_embedding), dim=-1), edge_index))
+       
+        for gcn, norm in zip(self.enc_gcns, self.enc_norm):
+            h_norm = norm(hidden, batch)
+            h_conv = self.activation(gcn(h_norm, edge_index))
+            hidden = h_norm + h_conv
+        latent = self.enc_gcnF(hidden, edge_index)
+        return self.pooling(latent, batch)
 
     def decode(self, z_graph: Tensor, edge_index: Tensor, batch: Tensor) -> Tensor:
         """Reconstruct node metadata from graph codes and topology, without LPE."""
-        hidden = functional.relu(self.dec_gcn1(z_graph[batch], edge_index))
-        return self.dec_gcn2(hidden, edge_index)
+        h = z_graph[batch]
+        hidden = self.activation(self.dec_proj(h))
+        
+        for gcn, norm in zip(self.dec_gcns, self.dec_norm):
+            h_norm = norm(hidden, batch)
+            h_conv = self.activation(gcn(h_norm, edge_index))
+            hidden = h_norm + h_conv
+ 
+        return self.dec_gcnF(hidden, edge_index)
 
     def forward(self, x: Tensor, lpe: Tensor, edge_index: Tensor, batch: Tensor) -> tuple[Tensor, Tensor]:
         graph_embeddings = self.encode(x, lpe, edge_index, batch)

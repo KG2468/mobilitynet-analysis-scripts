@@ -121,7 +121,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--cache-path", type=Path, default=DEFAULT_CACHE_PATH)
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--learning-rate", type=float, default=4e-3)
+    parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--lpe-dim", type=int, default=8)
     parser.add_argument("--hidden-dim", type=int, default=128)
@@ -149,7 +150,7 @@ def main() -> None:
     device = accelerator_device(args.device)
     
     if args.cache_path.exists():
-        raw_dataset = torch.load(args.cache_path)
+        raw_dataset = torch.load(args.cache_path, weights_only=False)
     else:
         raw_dataset = RoadNetworkDataset(graph_paths, lpe_dim=args.lpe_dim)
         if hasattr(raw_dataset, "__len__"):
@@ -202,7 +203,8 @@ def main() -> None:
             hidden_dim=args.hidden_dim,
             latent_dim=256,
         ).to(device)
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-5)
         fold_dir = args.output_dir / ("fold_%d" % fold)
         fold_dir.mkdir(exist_ok=True)
 
@@ -213,6 +215,7 @@ def main() -> None:
                 metrics = {"fold": fold, "epoch": epoch, "train_mse": train_mse, "test_mse": test_mse}
                 metrics_file.write(json.dumps(metrics) + "\n")
                 metrics_file.flush()
+                scheduler.step()
                 print("fold=%d epoch=%d/%d train_mse=%.8f test_mse=%.8f" % (
                     fold, epoch, args.epochs, train_mse, test_mse))
 
