@@ -136,7 +136,7 @@ def _add_lpe(x: Tensor, edge_index: Tensor, lpe_dim: int) -> Data:
             data.lpe = functional.pad(data.lpe, (0, lpe_dim - available_lpe_dim))
     else:
         data.lpe = torch.zeros((x.size(0), lpe_dim), dtype=torch.float32)
-    return data
+    return data.to(x.device)
 
 
 def graphml_to_data(
