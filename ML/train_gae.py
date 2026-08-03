@@ -208,7 +208,7 @@ def main() -> None:
         if args.scheduler == "cosine":
             scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-5)
         elif args.scheduler == "restarts":
-            scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=args.epochs // 10, T_mult=1.5, eta_min=1e-5)
+            scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=args.epochs // 10, T_mult=2, eta_min=1e-5)
         elif args.scheduler == "plateau":
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.7, patience=5, min_lr=1e-5)
         fold_dir = args.output_dir / ("fold_%d" % fold)
