@@ -22,9 +22,9 @@ from torch import Tensor, nn
 from torch.nn import functional as functional
 from torch.utils.data import Dataset
 from torch_geometric.data import Data
-from torch_geometric.nn import GCNConv, LayerNorm
-from torch_geometric.transforms import AddLaplacianEigenvectorPE
-from torch_geometric.utils import softmax, scatter
+from torch_geometric.nn import GCNConv, GATConv, LayerNorm
+from torch_geometric.transforms import AddLaplacianEigenvectorPE, AddRandomWalkPE
+from torch_geometric.utils import softmax, scatter, degree
 
 
 DEFAULT_NODE_FEATURES = (
@@ -123,6 +123,21 @@ def _edge_index(graph: nx.Graph, nodes: Sequence[object]) -> Tensor:
         edges = {(index, index) for index in range(len(nodes))}
     return torch.tensor(sorted(edges), dtype=torch.long).t().contiguous()
 
+def _add_lpe(x: Tensor, edge_index: Tensor, lpe_dim: int) -> Data:
+    data = Data(x=x, edge_index=edge_index)
+    if x.size(0) > 1 and lpe_dim > 0:
+        available_lpe_dim = min(lpe_dim, x.size(0) - 1)
+        data = AddLaplacianEigenvectorPE(
+            k=available_lpe_dim,
+            attr_name="lpe",
+            is_undirected=True,
+        )(data)
+        if available_lpe_dim < lpe_dim:
+            data.lpe = functional.pad(data.lpe, (0, lpe_dim - available_lpe_dim))
+    else:
+        data.lpe = torch.zeros((x.size(0), lpe_dim), dtype=torch.float32)
+    return data
+
 
 def graphml_to_data(
     graph: nx.Graph,
@@ -158,22 +173,42 @@ def graphml_to_data(
         dtype=torch.float32,
     )
     edge_index = _edge_index(graph, nodes)
-    data = Data(x=x, edge_index=edge_index)
-    if len(nodes) > 1 and lpe_dim > 0:
-        available_lpe_dim = min(lpe_dim, len(nodes) - 1)
-        data = AddLaplacianEigenvectorPE(
-            k=available_lpe_dim,
-            attr_name="lpe",
-            is_undirected=True,
-        )(data)
-        if available_lpe_dim < lpe_dim:
-            data.lpe = functional.pad(data.lpe, (0, lpe_dim - available_lpe_dim))
-    else:
-        data.lpe = torch.zeros((len(nodes), lpe_dim), dtype=torch.float32)
+    data = _add_lpe(x, edge_index, lpe_dim)
+    data = AddRandomWalkPE(walk_length=lpe_dim, attr_name="rwpe")(data)
     data.graph_path = str(path) if path is not None else ""
     return data
 
 
+class TopologicalFiLMUnpool(nn.Module):
+    def __init__(self, latent_dim: int = 256, k_steps: int = 8, hidden_dim: int = 128):
+        super().__init__()
+        
+        # Input features: k_steps (RWPE from transform) + 1 (log degree)
+        cond_dim = k_steps + 1
+        
+        # FiLM MLP: maps topological vector -> [gamma, beta]
+        self.film_mlp = nn.Sequential(
+            nn.Linear(cond_dim, hidden_dim),
+            nn.LeakyReLU(0.1),
+            nn.Linear(hidden_dim, latent_dim * 2)
+        )
+
+    def forward(self, z_graph: torch.Tensor, edge_index: torch.Tensor, batch: torch.Tensor, rwpe: torch.Tensor) -> torch.Tensor:
+        # 1. Degree calculation (or pre-computed degree)
+        deg = degree(edge_index[0], num_nodes=rwpe.size(0)).unsqueeze(-1)
+        log_deg = torch.log(deg + 1.0)
+        
+        # 2. Combine pre-computed RWPE with log degree
+        topo_cond = torch.cat([rwpe, log_deg], dim=-1)  # [N, k_steps + 1]
+        
+        # 3. Unpool z_graph to all nodes
+        h_unpooled = z_graph[batch]                     # [N, latent_dim]
+        
+        # 4. Predict gamma and beta and modulate z_graph
+        gamma_beta = self.film_mlp(topo_cond)
+        gamma, beta = torch.chunk(gamma_beta, 2, dim=-1)
+        
+        return gamma * h_unpooled + beta
 
 
 class TemperatureGlobalAttention(nn.Module):
@@ -252,24 +287,27 @@ class EncoderOnlyLPEGAE(nn.Module):
         lpe_dim: int = 8,
         hidden_dim: int = 128,
         latent_dim: int = 256,
-        num_layers: int = 4,
+        num_layers: int = 3,
     ):
         super().__init__()
         self.lpe_proj = nn.Linear(lpe_dim, hidden_dim)
         self.enc_gcn1 = GCNConv(in_channels + hidden_dim, hidden_dim)
-        self.enc_gcns = nn.ModuleList([GCNConv(hidden_dim, hidden_dim) for i in range(num_layers)])
+        self.enc_gcns = nn.ModuleList([GATConv(hidden_dim, hidden_dim, heads=4, concat=False) for i in range(num_layers)])
         self.enc_norm = nn.ModuleList([LayerNorm(hidden_dim) for i in range(num_layers)])
-        self.enc_gcnF = GCNConv(hidden_dim, latent_dim)
+        self.enc_gcnF = GCNConv(hidden_dim, hidden_dim)
+        self.pool_lpe_proj = nn.Linear(lpe_dim, hidden_dim)
         self.pooling = TemperatureGlobalAttention(
             gate_nn=nn.Sequential(
-                nn.Linear(latent_dim, hidden_dim),
+                nn.Linear(hidden_dim*2, hidden_dim),
                 nn.ReLU(),
                 nn.Linear(hidden_dim, 1),
             )
         )
+        self.latent_proj = nn.Linear(hidden_dim * 2, latent_dim)
 
-        self.dec_proj = nn.Linear(latent_dim, hidden_dim)
-        self.dec_gcns = nn.ModuleList([GCNConv(hidden_dim, hidden_dim) for i in range(num_layers)])
+        self.dec_unpool = TopologicalFiLMUnpool(latent_dim=latent_dim, k_steps=lpe_dim, hidden_dim=hidden_dim)
+        self.dec_gcn1 = GCNConv(hidden_dim, hidden_dim)
+        self.dec_gcns = nn.ModuleList([GATConv(hidden_dim, hidden_dim, heads=4, concat=False) for i in range(num_layers)])
         self.dec_norm = nn.ModuleList([LayerNorm(hidden_dim) for i in range(num_layers)]) 
         self.dec_gcnF = GCNConv(hidden_dim, in_channels)
         
@@ -288,12 +326,16 @@ class EncoderOnlyLPEGAE(nn.Module):
             h_conv = self.activation(gcn(h_norm, edge_index))
             hidden = h_norm + h_conv
         latent = self.enc_gcnF(hidden, edge_index)
-        return self.pooling(latent, batch)
+        latent = _add_lpe(latent, edge_index, self.lpe_proj.in_features)
+        lpe_pool_embeddings = self.activation(self.pool_lpe_proj(latent.lpe))
+        latent = torch.cat((latent, lpe_pool_embeddings), dim=-1)
+        return self.latent_proj(self.pooling(latent, batch))
 
-    def decode(self, z_graph: Tensor, edge_index: Tensor, batch: Tensor) -> Tensor:
+    def decode(self, z_graph: Tensor, rwpe: Tensor, edge_index: Tensor, batch: Tensor) -> Tensor:
         """Reconstruct node metadata from graph codes and topology, without LPE."""
-        h = z_graph[batch]
-        hidden = self.activation(self.dec_proj(h))
+        h = self.dec_unpool(z_graph, edge_index, batch, rwpe)
+        hidden = self.activation(self.dec_gcn1(h, edge_index))
+        
         
         for gcn, norm in zip(self.dec_gcns, self.dec_norm):
             h_norm = norm(hidden, batch)
@@ -302,9 +344,9 @@ class EncoderOnlyLPEGAE(nn.Module):
  
         return self.dec_gcnF(hidden, edge_index)
 
-    def forward(self, x: Tensor, lpe: Tensor, edge_index: Tensor, batch: Tensor) -> tuple[Tensor, Tensor]:
+    def forward(self, x: Tensor, lpe: Tensor, rwpe: Tensor, edge_index: Tensor, batch: Tensor) -> tuple[Tensor, Tensor]:
         graph_embeddings = self.encode(x, lpe, edge_index, batch)
-        return self.decode(graph_embeddings, edge_index, batch), graph_embeddings
+        return self.decode(graph_embeddings, rwpe, edge_index, batch), graph_embeddings
 
 
 def training_metadata(feature_names: Sequence[str], lpe_dim: int) -> str:
