@@ -83,7 +83,7 @@ def train_epoch(model, loader, optimizer, device) -> float:
         # Optimization: Asynchronous transfer if using pinned host memory
         batch = batch.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
-        reconstruction, _ = model(batch.x, batch.lpe, batch.edge_index, batch.batch)
+        reconstruction, _ = model(batch.x, batch.lpe, batch.rwpe, batch.edge_index, batch.batch)
         loss = functional.mse_loss(reconstruction, batch.x)
         loss.backward()
         optimizer.step()
@@ -100,7 +100,7 @@ def evaluate(model, loader, device) -> float:
     with torch.no_grad():
         for batch in loader:
             batch = batch.to(device, non_blocking=True)
-            reconstruction, _ = model(batch.x, batch.lpe, batch.edge_index, batch.batch)
+            reconstruction, _ = model(batch.x, batch.lpe, batch.rwpe, batch.edge_index, batch.batch)
             loss = functional.mse_loss(reconstruction, batch.x)
             total_squared_error += loss.item() * batch.x.numel()
             total_values += batch.x.numel()
@@ -127,6 +127,10 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--lpe-dim", type=int, default=8)
     parser.add_argument("--hidden-dim", type=int, default=128)
+    parser.add_argument("--position-skip", type=bool, default=False,
+                        help="Whether to add a positional encoding skip connection (default: %(default)s)")
+    parser.add_argument("--GAT", type=bool, default=False,
+                        help="Whether to use Graph Attention Network (GAT) layers (default: %(default)s)")
     parser.add_argument("--max-graphs", type=int, default=None)
     parser.add_argument("--device", choices=("auto", "cuda", "mps", "cpu"), default="auto")
     parser.add_argument("--seed", type=int, default=20260731)
