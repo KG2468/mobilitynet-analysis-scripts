@@ -74,7 +74,7 @@ def set_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def train_epoch(model, loader, optimizer, device) -> float:
+def train_epoch(model, loader, optimizer, device, embedding_l2_weight: float) -> float:
     """Run one metadata-reconstruction epoch."""
     model.train()
     total_squared_error = 0.0
@@ -83,11 +83,13 @@ def train_epoch(model, loader, optimizer, device) -> float:
         # Optimization: Asynchronous transfer if using pinned host memory
         batch = batch.to(device, non_blocking=True)
         optimizer.zero_grad(set_to_none=True)
-        reconstruction, _ = model(batch.x, batch.lpe, batch.rwpe, batch.edge_index, batch.batch)
-        loss = functional.mse_loss(reconstruction, batch.x)
+        reconstruction, embeddings = model(batch.x, batch.lpe, batch.rwpe, batch.edge_index, batch.batch)
+        reconstruction_loss = functional.mse_loss(reconstruction, batch.x)
+        embedding_l2_loss = embeddings.square().mean()
+        loss = reconstruction_loss + embedding_l2_weight * embedding_l2_loss
         loss.backward()
         optimizer.step()
-        total_squared_error += loss.item() * batch.x.numel()
+        total_squared_error += reconstruction_loss.item() * batch.x.numel()
         total_values += batch.x.numel()
     return total_squared_error / total_values
 
@@ -122,7 +124,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--learning-rate", type=float, default=4e-3)
-    parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--weight-decay", type=float, default=1e-2)
+    parser.add_argument("--embedding-l2-weight", type=float, default=1e-3,
+                        help="L2 penalty coefficient for graph embeddings (default: %(default)s)")
     parser.add_argument("--scheduler", choices=("cosine", "restarts", "plateau"), default="cosine")
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--lpe-dim", type=int, default=8)
@@ -139,8 +143,8 @@ def parse_arguments() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_arguments()
-    if args.epochs <= 0 or args.batch_size <= 0 or args.lpe_dim < 0:
-        raise ValueError("--epochs and --batch-size must be positive; --lpe-dim cannot be negative")
+    if args.epochs <= 0 or args.batch_size <= 0 or args.lpe_dim < 0 or args.embedding_l2_weight < 0:
+        raise ValueError("--epochs and --batch-size must be positive; --lpe-dim and --embedding-l2-weight cannot be negative")
 
     graph_paths = sorted(args.data_dir.glob("*.graphml"))
     if args.max_graphs is not None:
@@ -220,7 +224,7 @@ def main() -> None:
 
         with (fold_dir / "metrics.jsonl").open("w") as metrics_file:
             for epoch in range(1, args.epochs + 1):
-                train_mse = train_epoch(model, train_loader, optimizer, device)
+                train_mse = train_epoch(model, train_loader, optimizer, device, args.embedding_l2_weight)
                 test_mse = evaluate(model, test_loader, device)
                 metrics = {"fold": fold, "epoch": epoch, "train_mse": train_mse, "test_mse": test_mse}
                 metrics_file.write(json.dumps(metrics) + "\n")

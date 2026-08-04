@@ -24,7 +24,7 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv, GATConv, LayerNorm
 from torch_geometric.transforms import AddLaplacianEigenvectorPE, AddRandomWalkPE
-from torch_geometric.utils import softmax, scatter, degree
+from torch_geometric.utils import softmax, scatter, degree, dropout_edge
 
 
 DEFAULT_NODE_FEATURES = (
@@ -188,6 +188,7 @@ class RWPEFiLM(nn.Module):
         self.film_mlp = nn.Sequential(
             nn.Linear(cond_dim, hidden_dim),
             nn.LeakyReLU(0.1),
+            nn.Dropout(p=0.15),
             nn.Linear(hidden_dim, channels * 2),
         )
 
@@ -283,7 +284,7 @@ class EncoderOnlyLPEGAE(nn.Module):
         self.lpe_proj = nn.Linear(lpe_dim, hidden_dim)
         self.enc_rwpe_film = RWPEFiLM(hidden_dim, k_steps=lpe_dim, hidden_dim=hidden_dim)
         self.enc_gcn1 = GCNConv(in_channels + hidden_dim, hidden_dim)
-        self.enc_gcns = nn.ModuleList([GATConv(hidden_dim, hidden_dim, heads=4, concat=False) for i in range(num_layers)])
+        self.enc_gcns = nn.ModuleList([GATConv(hidden_dim, hidden_dim, heads=4, concat=False, dropout=0.15) for i in range(num_layers)])
         self.enc_norm = nn.ModuleList([LayerNorm(hidden_dim) for i in range(num_layers)])
         self.enc_gcnF = GCNConv(hidden_dim, hidden_dim)
         self.pool_lpe_proj = nn.Linear(lpe_dim, hidden_dim)
@@ -291,6 +292,7 @@ class EncoderOnlyLPEGAE(nn.Module):
             gate_nn=nn.Sequential(
                 nn.Linear(hidden_dim*2, hidden_dim),
                 nn.ReLU(),
+                nn.Dropout(p=0.15),
                 nn.Linear(hidden_dim, 1),
             )
         )
@@ -302,7 +304,7 @@ class EncoderOnlyLPEGAE(nn.Module):
         self.dec_norm = nn.ModuleList([LayerNorm(hidden_dim) for i in range(num_layers)]) 
         self.dec_gcnF = GCNConv(hidden_dim, in_channels)
         
-        self.activation = lambda x: functional.leaky_relu(x, negative_slope=0.1)
+        self.activation = lambda x: functional.dropout(functional.leaky_relu(x, negative_slope=0.1), p=0.15, training=self.training)
 
     def encode(self, x: Tensor, lpe: Tensor, rwpe: Tensor, edge_index: Tensor, batch: Tensor) -> Tensor:
         """Encode batched nodes into one latent vector per graph."""
@@ -337,8 +339,9 @@ class EncoderOnlyLPEGAE(nn.Module):
         return self.dec_gcnF(hidden, edge_index)
 
     def forward(self, x: Tensor, lpe: Tensor, rwpe: Tensor, edge_index: Tensor, batch: Tensor) -> tuple[Tensor, Tensor]:
-        graph_embeddings = self.encode(x, lpe, rwpe, edge_index, batch)
-        return self.decode(graph_embeddings, rwpe, edge_index, batch), graph_embeddings
+        train_edge_index, _ = dropout_edge(edge_index, p=0.15, force_undirected=True, training=self.training)
+        graph_embeddings = self.encode(x, lpe, rwpe, train_edge_index, batch)
+        return self.decode(graph_embeddings, rwpe, train_edge_index, batch), graph_embeddings
 
 
 def training_metadata(feature_names: Sequence[str], lpe_dim: int) -> str:
