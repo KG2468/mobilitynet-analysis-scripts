@@ -124,8 +124,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--learning-rate", type=float, default=4e-3)
-    parser.add_argument("--weight-decay", type=float, default=1e-2)
-    parser.add_argument("--embedding-l2-weight", type=float, default=1e-3,
+    parser.add_argument("--weight-decay", type=float, default=1e-3)
+    parser.add_argument("--embedding-l2-weight", type=float, default=1e-4,
                         help="L2 penalty coefficient for graph embeddings (default: %(default)s)")
     parser.add_argument("--scheduler", choices=("cosine", "restarts", "plateau"), default="cosine")
     parser.add_argument("--workers", type=int, default=0)
