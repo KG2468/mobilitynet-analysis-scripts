@@ -94,19 +94,29 @@ def train_epoch(model, loader, optimizer, device, embedding_l2_weight: float) ->
     return total_squared_error / total_values
 
 
-def evaluate(model, loader, device) -> float:
-    """Return reconstruction MSE for the held-out fold."""
+def evaluate(model, loader, device) -> dict[str, float]:
+    """Return aggregate and per-feature reconstruction MSE for the held-out fold."""
     model.eval()
-    total_squared_error = 0.0
-    total_values = 0
+    total_squared_error_by_feature = None
+    total_nodes = 0
     with torch.no_grad():
         for batch in loader:
             batch = batch.to(device, non_blocking=True)
             reconstruction, _ = model(batch.x, batch.lpe, batch.rwpe, batch.edge_index, batch.batch)
-            loss = functional.mse_loss(reconstruction, batch.x)
-            total_squared_error += loss.item() * batch.x.numel()
-            total_values += batch.x.numel()
-    return total_squared_error / total_values
+            squared_error_by_feature = (reconstruction - batch.x).square().sum(dim=0)
+            if total_squared_error_by_feature is None:
+                total_squared_error_by_feature = squared_error_by_feature
+            else:
+                total_squared_error_by_feature += squared_error_by_feature
+            total_nodes += batch.x.size(0)
+
+    feature_mse = total_squared_error_by_feature / total_nodes
+    metrics = {"test_mse": feature_mse.mean().item()}
+    metrics.update({
+        "test_mse_%s" % feature_name: mse.item()
+        for feature_name, mse in zip(DEFAULT_NODE_FEATURES, feature_mse)
+    })
+    return metrics
 
 
 def fold_indices(item_count: int, seed: int) -> list[list[int]]:
@@ -225,16 +235,20 @@ def main() -> None:
         with (fold_dir / "metrics.jsonl").open("w") as metrics_file:
             for epoch in range(1, args.epochs + 1):
                 train_mse = train_epoch(model, train_loader, optimizer, device, args.embedding_l2_weight)
-                test_mse = evaluate(model, test_loader, device)
-                metrics = {"fold": fold, "epoch": epoch, "train_mse": train_mse, "test_mse": test_mse}
+                test_metrics = evaluate(model, test_loader, device)
+                metrics = {"fold": fold, "epoch": epoch, "train_mse": train_mse, **test_metrics}
                 metrics_file.write(json.dumps(metrics) + "\n")
                 metrics_file.flush()
                 if args.scheduler == "plateau":
-                    scheduler.step(test_mse)
+                    scheduler.step(test_metrics["test_mse"])
                 else:
                     scheduler.step()
                 print("fold=%d epoch=%d/%d train_mse=%.8f test_mse=%.8f" % (
-                    fold, epoch, args.epochs, train_mse, test_mse))
+                    fold, epoch, args.epochs, train_mse, test_metrics["test_mse"]))
+                print(" ".join(
+                    "%s_mse=%.8f" % (feature_name, test_metrics["test_mse_%s" % feature_name])
+                    for feature_name in DEFAULT_NODE_FEATURES
+                ))
 
         # Checkpoint serialization remains on CPU for clean portability
         checkpoint = {
