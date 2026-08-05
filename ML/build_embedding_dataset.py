@@ -163,27 +163,53 @@ def encode_gae_graph(model: EncoderOnlyLPEGAE, data, device: torch.device) -> tu
     return graph_embedding.squeeze(0).cpu(), node_embeddings.cpu()
 
 
-def encode_road_networks(
-    graph_paths: list[Path], model: EncoderOnlyLPEGAE, standardizer: GAEFeatureStandardizer,
-    lpe_dim: int, device: torch.device,
-) -> dict[str, dict[str, Any]]:
-    embeddings: dict[str, dict[str, Any]] = {}
+def gae_shard_path(output_path: Path, tile_id: str) -> Path:
+    """Return the per-tile GAE shard path beside the small dataset manifest."""
+    return output_path.with_suffix("") / "entries" / (tile_id + ".pt")
+
+
+def encode_and_save_road_networks(
+    graph_paths: list[Path], matched_ids: set[str], model: EncoderOnlyLPEGAE,
+    standardizer: GAEFeatureStandardizer, lpe_dim: int, device: torch.device, output_path: Path,
+    trajectory_embeddings: dict[str, torch.Tensor], render_embeddings: dict[str, torch.Tensor],
+) -> list[dict[str, str]]:
+    """Encode matching road graphs and write one CPU shard at a time.
+
+    Keeping all pre-pooling node vectors in a Python dictionary would require several
+    gigabytes of host memory. Each result is therefore transferred and saved before
+    moving on to the next graph, while the model remains resident on the accelerator.
+    """
+    manifest_entries: list[dict[str, str]] = []
     with torch.inference_mode():
-        for path in graph_paths:
+        for index, path in enumerate(graph_paths, start=1):
             tile_id = path.stem
-            if tile_id in embeddings:
-                raise ValueError("Duplicate road-network tile_id %s" % tile_id)
+            if tile_id not in matched_ids:
+                continue
             graph = nx.read_graphml(path)
             node_ids = [str(node_id) for node_id in graph.nodes()]
             data = standardizer.transform(graphml_to_data(graph, path=path, lpe_dim=lpe_dim))
             graph_embedding, node_embeddings = encode_gae_graph(model, data, device)
-            embeddings[tile_id] = {
-                "embedding": graph_embedding,
-                "node_embeddings": node_embeddings,
-                "node_ids": node_ids,
-                "road_network_path": str(path.relative_to(REPOSITORY_ROOT)),
-            }
-    return embeddings
+            shard_path = gae_shard_path(output_path, tile_id)
+            shard_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save({
+                "tile_id": tile_id,
+                "tae_embedding": trajectory_embeddings[tile_id],
+                "cae_embedding": render_embeddings[tile_id],
+                "gae_embedding": graph_embedding,
+                "gae_node_embeddings": node_embeddings,
+                "gae_node_ids": node_ids,
+                "road_network_path": str(path.resolve().relative_to(REPOSITORY_ROOT)),
+            }, shard_path)
+            manifest_entries.append({
+                "tile_id": tile_id,
+                "entry_path": str(shard_path.relative_to(output_path.parent)),
+            })
+            del graph, data, graph_embedding, node_embeddings, node_ids
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+            if index % 100 == 0 or index == len(graph_paths):
+                print("Encoded and saved %d/%d road networks" % (index, len(graph_paths)), flush=True)
+    return manifest_entries
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -215,35 +241,48 @@ def main() -> None:
     trajectory_embeddings = encode_trajectories(args.trajectories_path, tae, tae_standardizer, device)
     render_embeddings = encode_renders(sorted(args.renders_dir.glob("*.png")), cae, device)
     modalities: dict[str, set[str]] = {"trajectory": set(trajectory_embeddings), "render": set(render_embeddings)}
-    road_embeddings = None
+    road_manifest_entries = None
     if gae_path.exists():
+        graph_paths = sorted(args.road_networks_dir.glob("*.graphml"))
+        road_tile_ids = {path.stem for path in graph_paths}
+        if len(road_tile_ids) != len(graph_paths):
+            raise ValueError("Duplicate road-network tile_id")
+        modalities["road_network"] = road_tile_ids
+        matched_ids = sorted(set.intersection(*modalities.values()))
+        if not matched_ids:
+            raise ValueError("No tile IDs are shared by all available modalities")
         gae, gae_standardizer, gae_config = load_gae(gae_path, device)
-        road_embeddings = encode_road_networks(
-            sorted(args.road_networks_dir.glob("*.graphml")), gae, gae_standardizer,
-            gae_config.get("lpe_dim", 8), device)
-        modalities["road_network"] = set(road_embeddings)
+        road_manifest_entries = encode_and_save_road_networks(
+            graph_paths, set(matched_ids), gae, gae_standardizer, gae_config.get("lpe_dim", 8), device,
+            args.output_path, trajectory_embeddings, render_embeddings)
+    else:
+        matched_ids = sorted(set.intersection(*modalities.values()))
+        if not matched_ids:
+            raise ValueError("No tile IDs are shared by all available modalities")
 
-    matched_ids = sorted(set.intersection(*modalities.values()))
-    if not matched_ids:
-        raise ValueError("No tile IDs are shared by all available modalities")
-    entries = []
-    for tile_id in matched_ids:
-        entry = {"tile_id": tile_id, "tae_embedding": trajectory_embeddings[tile_id], "cae_embedding": render_embeddings[tile_id]}
-        if road_embeddings is not None:
-            entry["gae_embedding"] = road_embeddings[tile_id]["embedding"]
-            entry["gae_node_embeddings"] = road_embeddings[tile_id]["node_embeddings"]
-            entry["gae_node_ids"] = road_embeddings[tile_id]["node_ids"]
-            entry["road_network_path"] = road_embeddings[tile_id]["road_network_path"]
-        entries.append(entry)
     report = {
         "available_modalities": sorted(modalities),
         "source_counts": {name: len(tile_ids) for name, tile_ids in modalities.items()},
-        "matched_count": len(entries),
+        "matched_count": len(matched_ids),
         "unmatched_counts": {name: len(tile_ids - set(matched_ids)) for name, tile_ids in modalities.items()},
     }
     args.output_path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"entries": entries, "report": report}, args.output_path)
-    print("Saved %d matched embedding entries to %s" % (len(entries), args.output_path))
+    if road_manifest_entries is None:
+        entries = [
+            {"tile_id": tile_id, "tae_embedding": trajectory_embeddings[tile_id], "cae_embedding": render_embeddings[tile_id]}
+            for tile_id in matched_ids
+        ]
+        payload = {"entries": entries, "report": report}
+    else:
+        if len(road_manifest_entries) != len(matched_ids):
+            raise RuntimeError("Saved GAE shard count does not match the matched tile count")
+        payload = {
+            "storage_format": "gae_sharded_v1",
+            "entries": road_manifest_entries,
+            "report": report,
+        }
+    torch.save(payload, args.output_path)
+    print("Saved %d matched embedding entries to %s" % (len(matched_ids), args.output_path))
     print(json.dumps(report, sort_keys=True))
 
 
