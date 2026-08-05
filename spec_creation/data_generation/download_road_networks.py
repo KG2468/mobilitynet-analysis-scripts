@@ -20,7 +20,9 @@ from pathlib import Path
 
 import networkx as nx
 import osmnx as ox
+from pyproj import CRS, Transformer
 from shapely.geometry import LineString, box
+from shapely.ops import transform
 from shapely.strtree import STRtree
 
 
@@ -112,17 +114,29 @@ def truncate_graph_by_edge_bbox(graph, bbox, edge_records, edge_index):
     return subgraph
 
 
-def enrich_and_line_graph(graph):
-    """Fill edge geometry/coordinates and return its filtered-attribute line graph."""
+def enrich_and_line_graph(graph, bbox):
+    """Return a line graph with edge nodes in southwest-relative UTM meters."""
+    west, south, _, _ = bbox
+    zone = int((west + 180) / 6) + 1
+    epsg = (32600 if south >= 0 else 32700) + zone
+    transformer = Transformer.from_crs("EPSG:4326", CRS.from_epsg(epsg), always_xy=True)
+    origin_x, origin_y = transformer.transform(west, south)
+
+    def project_relative(x, y, z=None):
+        projected_x, projected_y = transformer.transform(x, y)
+        return projected_x - origin_x, projected_y - origin_y
+
     for source, destination, key, data in graph.edges(keys=True, data=True):
-        start_x, start_y = float(graph.nodes[source]["x"]), float(graph.nodes[source]["y"])
-        end_x, end_y = float(graph.nodes[destination]["x"]), float(graph.nodes[destination]["y"])
+        start_x, start_y = project_relative(
+            float(graph.nodes[source]["x"]), float(graph.nodes[source]["y"]))
+        end_x, end_y = project_relative(
+            float(graph.nodes[destination]["x"]), float(graph.nodes[destination]["y"]))
         data["start_x"] = start_x
         data["start_y"] = start_y
         data["end_x"] = end_x
         data["end_y"] = end_y
-        if data.get("geometry") is None:
-            data["geometry"] = LineString([(start_x, start_y), (end_x, end_y)])
+        data["geometry"] = transform(
+            project_relative, edge_geometry(graph, source, destination, data))
 
     line_graph = nx.line_graph(graph)
     for source, destination, key, data in graph.edges(keys=True, data=True):
@@ -162,7 +176,7 @@ def process_record(record, output_dir):
         _EDGE_RECORDS,
         _EDGE_INDEX,
     )
-    line_graph = enrich_and_line_graph(tile_graph)
+    line_graph = enrich_and_line_graph(tile_graph, bbox_for_record(record))
     ox.io.save_graphml(line_graph, output_path)
     return {
         "tile_id": tile_id,
