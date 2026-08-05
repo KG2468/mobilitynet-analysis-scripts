@@ -30,14 +30,14 @@ from torch_geometric.utils import softmax, scatter, degree, dropout_edge
 DEFAULT_NODE_FEATURES = (
     "start_y",
     "start_x",
-    "reversed",
+    # "reversed",
     "oneway",
     "length",
-    "highway",
+    # "highway",
     "end_y",
     "end_x",
-    "lanes",
-    "maxspeed",
+    # "lanes",
+    # "maxspeed",
 )
 
 HIGHWAY_PRIORITY = (
