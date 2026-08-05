@@ -197,7 +197,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--learning-rate", type=float, default=4e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--validation-fraction", type=float, default=0.2)
     parser.add_argument("--hidden-dim", type=int, default=128)
