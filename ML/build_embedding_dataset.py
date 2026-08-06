@@ -37,6 +37,7 @@ DEFAULT_MODELS_DIR = REPOSITORY_ROOT / "models"
 DEFAULT_TRAJECTORIES_PATH = REPOSITORY_ROOT / "datasets" / "trajectories" / "trajectory_samples.jsonl"
 DEFAULT_RENDERS_DIR = REPOSITORY_ROOT / "datasets" / "standard_map_renders"
 DEFAULT_ROAD_NETWORKS_DIR = REPOSITORY_ROOT / "datasets" / "road_networks"
+DEFAULT_GAE_CACHE_PATH = REPOSITORY_ROOT / "datasets" / "gae_training" / "data.pt"
 DEFAULT_OUTPUT_PATH = REPOSITORY_ROOT / "datasets" / "encoder_embeddings" / "matched_embeddings.pt"
 
 
@@ -192,10 +193,35 @@ def gae_shard_path(output_path: Path, tile_id: str) -> Path:
     return output_path.with_suffix("") / "entries" / (tile_id + ".pt")
 
 
+def load_gae_feature_cache(
+    cache_path: Path | None, graph_paths: list[Path], lpe_dim: int, device: torch.device,
+) -> dict[str, Any] | None:
+    """Load compatible precomputed GAE features directly onto the accelerator."""
+    if cache_path is None or not cache_path.exists():
+        return None
+    cached = torch.load(cache_path, map_location=device, weights_only=False)
+    dataset = cached.get("dataset") if isinstance(cached, dict) else None
+    if not isinstance(dataset, list) or len(dataset) != len(graph_paths):
+        return None
+    cache_by_tile_id = {Path(data.graph_path).stem: data for data in dataset}
+    graph_tile_ids = {path.stem for path in graph_paths}
+    if set(cache_by_tile_id) != graph_tile_ids:
+        return None
+    if any(
+        data.x.size(-1) != len(DEFAULT_NODE_FEATURES)
+        or data.lpe.size(-1) != lpe_dim
+        or data.rwpe.size(-1) != lpe_dim
+        for data in dataset
+    ):
+        return None
+    return cache_by_tile_id
+
+
 def encode_and_save_road_networks(
     graph_paths: list[Path], matched_ids: set[str], model: EncoderOnlyLPEGAE,
     standardizer: GAEFeatureStandardizer, lpe_dim: int, device: torch.device, output_path: Path,
     trajectory_embeddings: dict[str, torch.Tensor], render_embeddings: dict[str, torch.Tensor], batch_size: int,
+    feature_cache: dict[str, Any] | None,
 ) -> list[dict[str, str]]:
     """Encode matching road graphs in GPU batches and write CPU shards immediately.
 
@@ -211,8 +237,10 @@ def encode_and_save_road_networks(
             graph_entries = []
             for path in paths:
                 graph = nx.read_graphml(path)
+                tile_id = path.stem
                 graph_entries.append((path, [str(node_id) for node_id in graph.nodes()],
-                                      standardizer.transform(graphml_to_data(graph, path=path, lpe_dim=lpe_dim))))
+                                      standardizer.transform(feature_cache[tile_id]) if feature_cache is not None
+                                      else standardizer.transform(graphml_to_data(graph, path=path, lpe_dim=lpe_dim))))
             data_batch = Batch.from_data_list([entry[2] for entry in graph_entries])
             node_offsets = data_batch.ptr.tolist()
             graph_embeddings, node_embeddings = encode_gae_batch(model, data_batch, device)
@@ -248,6 +276,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--trajectories-path", type=Path, default=DEFAULT_TRAJECTORIES_PATH)
     parser.add_argument("--renders-dir", type=Path, default=DEFAULT_RENDERS_DIR)
     parser.add_argument("--road-networks-dir", type=Path, default=DEFAULT_ROAD_NETWORKS_DIR)
+    parser.add_argument("--gae-cache-path", type=Path, default=DEFAULT_GAE_CACHE_PATH,
+                        help="Precomputed GAE feature cache; skipped when absent (default: %(default)s)")
+    parser.add_argument("--no-gae-cache", action="store_true", help="Recompute GAE graph features from GraphML")
     parser.add_argument("--output-path", type=Path, default=DEFAULT_OUTPUT_PATH)
     parser.add_argument("--device", choices=("auto", "cuda", "mps", "cpu"), default="auto")
     parser.add_argument("--batch-size", type=int, default=64, help="Encoder batch size (default: %(default)s)")
@@ -285,9 +316,17 @@ def main() -> None:
         if not matched_ids:
             raise ValueError("No tile IDs are shared by all available modalities")
         gae, gae_standardizer, gae_config = load_gae(gae_path, device)
+        gae_standardizer = GAEFeatureStandardizer(
+            gae_standardizer.mean.to(device), gae_standardizer.std.to(device))
+        feature_cache = None if args.no_gae_cache else load_gae_feature_cache(
+            args.gae_cache_path, graph_paths, gae_config.get("lpe_dim", 8), device)
+        if feature_cache is None:
+            print("GAE feature cache unavailable; computing positional features from GraphML", flush=True)
+        else:
+            print("Using cached GAE graph features from %s" % args.gae_cache_path, flush=True)
         road_manifest_entries = encode_and_save_road_networks(
             graph_paths, set(matched_ids), gae, gae_standardizer, gae_config.get("lpe_dim", 8), device,
-            args.output_path, trajectory_embeddings, render_embeddings, args.batch_size)
+            args.output_path, trajectory_embeddings, render_embeddings, args.batch_size, feature_cache)
     else:
         matched_ids = sorted(set.intersection(*modalities.values()))
         if not matched_ids:
