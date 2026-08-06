@@ -17,7 +17,6 @@ from typing import Iterable, Sequence, Optional
 
 import networkx as nx
 import torch
-from pyproj import CRS, Transformer
 from torch import Tensor, nn
 from torch.nn import functional as functional
 from torch.utils.data import Dataset
@@ -47,7 +46,6 @@ HIGHWAY_PRIORITY = (
     "trunk", "track", "tertiary_link", "trunk_link", "living_street", "construction", "proposed",
 )
 HIGHWAY_INDEX = {highway: index for index, highway in enumerate(HIGHWAY_PRIORITY)}
-TILE_IDENTIFIER = re.compile(r"--epsg(?P<epsg>\d+)--(?P<x>-?\d+)--(?P<y>-?\d+)\.graphml$")
 
 
 def _first_number(value: object) -> float:
@@ -97,18 +95,6 @@ def _feature_number(feature: str, value: object) -> float:
     return number
 
 
-@lru_cache(maxsize=None)
-def _tile_origin(path: Path) -> tuple[Transformer, float, float]:
-    """Return the tile CRS transformer and its southwest corner in projected meters."""
-    match = TILE_IDENTIFIER.search(path.name)
-    if match is None:
-        raise ValueError("Cannot determine EPSG and tile origin from %s" % path.name)
-    epsg = int(match["epsg"])
-    origin_x, origin_y = float(match["x"]), float(match["y"])
-    transformer = Transformer.from_crs("EPSG:4326", CRS.from_epsg(epsg), always_xy=True)
-    return transformer, origin_x, origin_y
-
-
 def _edge_index(graph: nx.Graph, nodes: Sequence[object]) -> Tensor:
     """Return a directed COO edge index with reverse links for GCN propagation."""
     node_indices = {node: index for index, node in enumerate(nodes)}
@@ -150,22 +136,9 @@ def graphml_to_data(
         raise ValueError("Cannot encode an empty graph")
 
     nodes = list(graph.nodes())
-    transformer, origin_x, origin_y = _tile_origin(path) if path is not None else (None, 0.0, 0.0)
 
     def feature_value(node: object, feature: str) -> float:
         attributes = graph.nodes[node]
-        if feature in ("start_x", "start_y", "end_x", "end_y") and transformer is not None:
-            start_x, start_y = transformer.transform(
-                _first_number(attributes.get("start_x")), _first_number(attributes.get("start_y")))
-            end_x, end_y = transformer.transform(
-                _first_number(attributes.get("end_x")), _first_number(attributes.get("end_y")))
-            coordinates = {
-                "start_x": start_x - origin_x,
-                "start_y": start_y - origin_y,
-                "end_x": end_x - origin_x,
-                "end_y": end_y - origin_y,
-            }
-            return coordinates[feature]
         return _feature_number(feature, attributes.get(feature))
 
     x = torch.tensor(
@@ -176,6 +149,9 @@ def graphml_to_data(
     data = _add_lpe(x, edge_index, lpe_dim)
     data = AddRandomWalkPE(walk_length=lpe_dim, attr_name="rwpe")(data)
     data.graph_path = str(path) if path is not None else ""
+    for name in ("x", "lpe", "rwpe"):
+        if not torch.isfinite(getattr(data, name)).all():
+            raise ValueError("Non-finite %s values in %s" % (name, data.graph_path or "GraphML graph"))
     return data
 
 

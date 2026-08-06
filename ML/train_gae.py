@@ -47,7 +47,7 @@ DEFAULT_DATA_DIR = REPOSITORY_ROOT / "datasets" / "road_networks"
 DEFAULT_OUTPUT_DIR = REPOSITORY_ROOT / "datasets" / "gae_training"
 DEFAULT_CACHE_PATH = REPOSITORY_ROOT / "datasets" / "gae_training" / "data.pt"
 FOLD_COUNT = 5
-CACHE_FORMAT_VERSION = 1
+CACHE_FORMAT_VERSION = 2
 
 
 def accelerator_device(requested_device: str) -> torch.device:
