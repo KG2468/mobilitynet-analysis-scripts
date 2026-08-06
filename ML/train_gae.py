@@ -47,6 +47,7 @@ DEFAULT_DATA_DIR = REPOSITORY_ROOT / "datasets" / "road_networks"
 DEFAULT_OUTPUT_DIR = REPOSITORY_ROOT / "datasets" / "gae_training"
 DEFAULT_CACHE_PATH = REPOSITORY_ROOT / "datasets" / "gae_training" / "data.pt"
 FOLD_COUNT = 5
+CACHE_FORMAT_VERSION = 1
 
 
 def accelerator_device(requested_device: str) -> torch.device:
@@ -126,6 +127,30 @@ def fold_indices(item_count: int, seed: int) -> list[list[int]]:
     return [indices[fold::FOLD_COUNT] for fold in range(FOLD_COUNT)]
 
 
+def load_or_create_dataset(
+    graph_paths: list[Path],
+    cache_path: Path,
+    lpe_dim: int,
+) -> list:
+    """Load a matching graph cache or rebuild it for the current feature schema."""
+    cache_config = {
+        "format_version": CACHE_FORMAT_VERSION,
+        "feature_names": list(DEFAULT_NODE_FEATURES),
+        "lpe_dim": lpe_dim,
+        "graph_paths": [str(path) for path in graph_paths],
+    }
+    if cache_path.exists():
+        cached = torch.load(cache_path, weights_only=False)
+        if isinstance(cached, dict) and cached.get("config") == cache_config:
+            return cached["dataset"]
+
+    dataset = RoadNetworkDataset(graph_paths, lpe_dim=lpe_dim)
+    raw_dataset = [dataset[index] for index in range(len(dataset))]
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"config": cache_config, "dataset": raw_dataset}, cache_path)
+    return raw_dataset
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
@@ -168,13 +193,12 @@ def main() -> None:
     set_seed(args.seed)
     device = accelerator_device(args.device)
     
-    if args.cache_path.exists():
-        raw_dataset = torch.load(args.cache_path, weights_only=False)
-    else:
-        raw_dataset = RoadNetworkDataset(graph_paths, lpe_dim=args.lpe_dim)
-        if hasattr(raw_dataset, "__len__"):
-            raw_dataset = [raw_dataset[index] for index in range(len(raw_dataset))]
-        torch.save(raw_dataset, args.cache_path)
+    raw_dataset = load_or_create_dataset(graph_paths, args.cache_path, args.lpe_dim)
+    input_channels = raw_dataset[0].x.size(-1)
+    if input_channels != len(DEFAULT_NODE_FEATURES):
+        raise ValueError(
+            "Dataset has %d features, but DEFAULT_NODE_FEATURES defines %d" % (
+                input_channels, len(DEFAULT_NODE_FEATURES)))
     args.output_dir.mkdir(parents=True, exist_ok=True)
     print("Training %d road networks with %d-fold cross-validation on %s" % (
         len(raw_dataset), FOLD_COUNT, device))
@@ -217,7 +241,7 @@ def main() -> None:
         )
 
         model = EncoderOnlyLPEGAE(
-            in_channels=len(DEFAULT_NODE_FEATURES),
+            in_channels=input_channels,
             lpe_dim=args.lpe_dim,
             hidden_dim=args.hidden_dim,
             latent_dim=256,
@@ -255,7 +279,7 @@ def main() -> None:
             "model_state_dict": model.state_dict(),
             "feature_standardizer": standardizer.state_dict(),
             "model_config": {
-                "in_channels": len(DEFAULT_NODE_FEATURES),
+                "in_channels": input_channels,
                 "lpe_dim": args.lpe_dim,
                 "hidden_dim": args.hidden_dim,
                 "latent_dim": 256,
