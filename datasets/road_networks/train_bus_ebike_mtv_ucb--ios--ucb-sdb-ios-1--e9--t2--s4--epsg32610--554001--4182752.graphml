@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d11" for="node" attr.name="end_y" attr.type="string" />
+  <key id="d10" for="node" attr.name="end_x" attr.type="string" />
+  <key id="d9" for="node" attr.name="start_y" attr.type="string" />
+  <key id="d8" for="node" attr.name="start_x" attr.type="string" />
+  <key id="d7" for="node" attr.name="geometry" attr.type="string" />
+  <key id="d6" for="node" attr.name="length" attr.type="string" />
+  <key id="d5" for="node" attr.name="reversed" attr.type="string" />
+  <key id="d4" for="node" attr.name="oneway" attr.type="string" />
+  <key id="d3" for="node" attr.name="maxspeed" attr.type="string" />
+  <key id="d2" for="node" attr.name="lanes" attr.type="string" />
+  <key id="d1" for="node" attr.name="highway" attr.type="string" />
+  <key id="d0" for="node" attr.name="osmid" attr.type="string" />
+  <graph edgedefault="directed">
+    <node id="(65310547, 65286228, 0)">
+      <data key="d0">[1343738800, 8921938]</data>
+      <data key="d1">motorway</data>
+      <data key="d2">5</data>
+      <data key="d3">50 mph</data>
+      <data key="d4">True</data>
+      <data key="d5">False</data>
+      <data key="d6">3313.531017972054</data>
+      <data key="d7">LINESTRING (1693.8282877564197 1961.5961064337753, -324.8173700909829 -446.23213147046044, -353.6615815976402 -479.1294615888037, -397.4016243034275 -520.7004437269643, -449.9137032852741 -560.7526890831068)</data>
+      <data key="d8">1693.8282877564197</data>
+      <data key="d9">1961.5961064337753</data>
+      <data key="d10">-449.9137032852741</data>
+      <data key="d11">-560.7526890831068</data>
+    </node>
+    <node id="(32927563, 645559609, 0)">
+      <data key="d0">[50690291, 179235221, 661905446]</data>
+      <data key="d1">motorway</data>
+      <data key="d2">5</data>
+      <data key="d3">50 mph</data>
+      <data key="d4">True</data>
+      <data key="d5">False</data>
+      <data key="d6">3221.89168859831</data>
+      <data key="d7">LINESTRING (-368.6104672019137 -499.88654567860067, -350.494323967956 -481.4055785811506, -322.1788659518352 -448.44511208636686, 1696.484270568937 1959.3727914686315, 1702.3084208795335 1966.3913077665493)</data>
+      <data key="d8">-368.6104672019137</data>
+      <data key="d9">-499.88654567860067</data>
+      <data key="d10">1702.3084208795335</data>
+      <data key="d11">1966.3913077665493</data>
+    </node>
+  </graph>
+</graphml>

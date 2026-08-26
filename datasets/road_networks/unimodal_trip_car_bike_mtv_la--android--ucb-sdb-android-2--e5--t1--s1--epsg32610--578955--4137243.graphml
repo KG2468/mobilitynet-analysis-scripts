@@ -1,0 +1,1691 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d11" for="node" attr.name="lanes" attr.type="string" />
+  <key id="d10" for="node" attr.name="maxspeed" attr.type="string" />
+  <key id="d9" for="node" attr.name="geometry" attr.type="string" />
+  <key id="d8" for="node" attr.name="end_y" attr.type="string" />
+  <key id="d7" for="node" attr.name="end_x" attr.type="string" />
+  <key id="d6" for="node" attr.name="start_y" attr.type="string" />
+  <key id="d5" for="node" attr.name="start_x" attr.type="string" />
+  <key id="d4" for="node" attr.name="length" attr.type="string" />
+  <key id="d3" for="node" attr.name="reversed" attr.type="string" />
+  <key id="d2" for="node" attr.name="oneway" attr.type="string" />
+  <key id="d1" for="node" attr.name="highway" attr.type="string" />
+  <key id="d0" for="node" attr.name="osmid" attr.type="string" />
+  <graph edgedefault="directed">
+    <node id="(7094910080, 65447934, 0)">
+      <data key="d0">8963243</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">73.77971793817653</data>
+      <data key="d5">192.91448318422772</data>
+      <data key="d6">191.6160649517551</data>
+      <data key="d7">193.09834079397842</data>
+      <data key="d8">117.99987772200257</data>
+      <data key="d9">LINESTRING (192.91448318422772 191.6160649517551, 193.09834079397842 117.99987772200257)</data>
+    </node>
+    <node id="(65447934, 7953669658, 0)">
+      <data key="d0">8963243</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">8.428883755213366</data>
+      <data key="d5">193.09834079397842</data>
+      <data key="d6">117.99987772200257</data>
+      <data key="d7">193.10717989702243</data>
+      <data key="d8">109.58965450292453</data>
+      <data key="d9">LINESTRING (193.09834079397842 117.99987772200257, 193.10717989702243 109.58965450292453)</data>
+    </node>
+    <node id="(65447934, 7094910080, 0)">
+      <data key="d0">8963243</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">73.77971793817653</data>
+      <data key="d5">193.09834079397842</data>
+      <data key="d6">117.99987772200257</data>
+      <data key="d7">192.91448318422772</data>
+      <data key="d8">191.6160649517551</data>
+      <data key="d9">LINESTRING (193.09834079397842 117.99987772200257, 192.91448318422772 191.6160649517551)</data>
+    </node>
+    <node id="(65447934, 65447932, 0)">
+      <data key="d0">413459721</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">128.09468070414653</data>
+      <data key="d9">LINESTRING (193.09834079397842 117.99987772200257, 75.19343570352066 117.22770721185952, 64.74613294342998 117.1510805496946)</data>
+      <data key="d5">193.09834079397842</data>
+      <data key="d6">117.99987772200257</data>
+      <data key="d7">64.74613294342998</data>
+      <data key="d8">117.1510805496946</data>
+    </node>
+    <node id="(7094910080, 65556422, 0)">
+      <data key="d0">8963243</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">133.47068344500116</data>
+      <data key="d5">192.91448318422772</data>
+      <data key="d6">191.6160649517551</data>
+      <data key="d7">192.582495321054</data>
+      <data key="d8">324.79093686211854</data>
+      <data key="d9">LINESTRING (192.91448318422772 191.6160649517551, 192.582495321054 324.79093686211854)</data>
+    </node>
+    <node id="(65556422, 65556425, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">26.173721678515072</data>
+      <data key="d5">192.582495321054</data>
+      <data key="d6">324.79093686211854</data>
+      <data key="d7">218.8042256369954</data>
+      <data key="d8">324.2738195611164</data>
+      <data key="d9">LINESTRING (192.582495321054 324.79093686211854, 218.8042256369954 324.2738195611164)</data>
+    </node>
+    <node id="(65556422, 7094910080, 0)">
+      <data key="d0">8963243</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">133.47068344500116</data>
+      <data key="d5">192.582495321054</data>
+      <data key="d6">324.79093686211854</data>
+      <data key="d7">192.91448318422772</data>
+      <data key="d8">191.6160649517551</data>
+      <data key="d9">LINESTRING (192.582495321054 324.79093686211854, 192.91448318422772 191.6160649517551)</data>
+    </node>
+    <node id="(65556422, 65556420, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">121.01660493645966</data>
+      <data key="d9">LINESTRING (192.582495321054 324.79093686211854, 79.63853817479685 324.04343913542107, 79.05474849347956 323.9824392851442, 71.47209363512229 322.49049785360694)</data>
+      <data key="d5">192.582495321054</data>
+      <data key="d6">324.79093686211854</data>
+      <data key="d7">71.47209363512229</data>
+      <data key="d8">322.49049785360694</data>
+    </node>
+    <node id="(7094910080, 7094910082, 0)">
+      <data key="d0">759509302</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">46.46429481540851</data>
+      <data key="d9">LINESTRING (192.91448318422772 191.6160649517551, 174.64255377510563 191.28764851158485, 146.35988363448996 191.54130299715325)</data>
+      <data key="d5">192.91448318422772</data>
+      <data key="d6">191.6160649517551</data>
+      <data key="d7">146.35988363448996</data>
+      <data key="d8">191.54130299715325</data>
+    </node>
+    <node id="(7094910082, 7094910080, 0)">
+      <data key="d0">759509302</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">46.46429481540851</data>
+      <data key="d9">LINESTRING (146.35988363448996 191.54130299715325, 174.64255377510563 191.28764851158485, 192.91448318422772 191.6160649517551)</data>
+      <data key="d5">146.35988363448996</data>
+      <data key="d6">191.54130299715325</data>
+      <data key="d7">192.91448318422772</data>
+      <data key="d8">191.6160649517551</data>
+    </node>
+    <node id="(2299047944, 65556434, 0)">
+      <data key="d0">[8948589, 220817221]</data>
+      <data key="d1">['residential', 'footway']</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">169.37970778881902</data>
+      <data key="d10">25 mph</data>
+      <data key="d9">LINESTRING (662.1855172471842 337.61908249463886, 658.5720744425198 335.8648576037958, 651.9389593799133 333.22751271910965, 561.1295252767159 330.6761834542267, 557.876208255766 328.2929922128096, 494.20899338973686 327.1214035889134)</data>
+      <data key="d5">662.1855172471842</data>
+      <data key="d6">337.61908249463886</data>
+      <data key="d7">494.20899338973686</data>
+      <data key="d8">327.1214035889134</data>
+    </node>
+    <node id="(65556434, 65556432, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">91.94720589458636</data>
+      <data key="d5">494.20899338973686</data>
+      <data key="d6">327.1214035889134</data>
+      <data key="d7">402.1877508673351</data>
+      <data key="d8">322.5742030311376</data>
+      <data key="d9">LINESTRING (494.20899338973686 327.1214035889134, 402.1877508673351 322.5742030311376)</data>
+    </node>
+    <node id="(65556434, 7933429519, 0)">
+      <data key="d0">8953030</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">93.17106491467209</data>
+      <data key="d5">494.20899338973686</data>
+      <data key="d6">327.1214035889134</data>
+      <data key="d7">493.68790739006363</data>
+      <data key="d8">420.08485914906487</data>
+      <data key="d9">LINESTRING (494.20899338973686 327.1214035889134, 493.68790739006363 420.08485914906487)</data>
+    </node>
+    <node id="(65556434, 2299047944, 0)">
+      <data key="d0">[220817221, 8948589]</data>
+      <data key="d1">['footway', 'residential']</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">169.379707788819</data>
+      <data key="d9">LINESTRING (494.20899338973686 327.1214035889134, 557.876208255766 328.2929922128096, 561.1295252767159 330.6761834542267, 651.9389593799133 333.22751271910965, 658.5720744425198 335.8648576037958, 662.1855172471842 337.61908249463886)</data>
+      <data key="d5">494.20899338973686</data>
+      <data key="d6">327.1214035889134</data>
+      <data key="d7">662.1855172471842</data>
+      <data key="d8">337.61908249463886</data>
+    </node>
+    <node id="(345502476, 65556432, 0)">
+      <data key="d0">8970171</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">209.96812499110763</data>
+      <data key="d9">LINESTRING (541.3687693908578 248.63730689277872, 533.7132956290152 253.8680688519962, 402.10136063746177 253.37136077461764, 402.1877508673351 322.5742030311376)</data>
+      <data key="d5">541.3687693908578</data>
+      <data key="d6">248.63730689277872</data>
+      <data key="d7">402.1877508673351</data>
+      <data key="d8">322.5742030311376</data>
+    </node>
+    <node id="(65556432, 65556434, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">91.94720589458636</data>
+      <data key="d5">402.1877508673351</data>
+      <data key="d6">322.5742030311376</data>
+      <data key="d7">494.20899338973686</data>
+      <data key="d8">327.1214035889134</data>
+      <data key="d9">LINESTRING (402.1877508673351 322.5742030311376, 494.20899338973686 327.1214035889134)</data>
+    </node>
+    <node id="(65556432, 65556428, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">86.12194038285962</data>
+      <data key="d9">LINESTRING (402.1877508673351 322.5742030311376, 323.6165747854393 321.6728854193352, 315.89590375649277 321.6661949697882)</data>
+      <data key="d5">402.1877508673351</data>
+      <data key="d6">322.5742030311376</data>
+      <data key="d7">315.89590375649277</data>
+      <data key="d8">321.6661949697882</data>
+    </node>
+    <node id="(65556432, 345502476, 0)">
+      <data key="d0">8970171</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">209.96812499110763</data>
+      <data key="d9">LINESTRING (402.1877508673351 322.5742030311376, 402.10136063746177 253.37136077461764, 533.7132956290152 253.8680688519962, 541.3687693908578 248.63730689277872)</data>
+      <data key="d5">402.1877508673351</data>
+      <data key="d6">322.5742030311376</data>
+      <data key="d7">541.3687693908578</data>
+      <data key="d8">248.63730689277872</data>
+    </node>
+    <node id="(8484526477, 344595690, 2)">
+      <data key="d0">689955911</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">7.435599216043491</data>
+      <data key="d5">538.53620771633</data>
+      <data key="d6">158.2937566782348</data>
+      <data key="d7">534.0057571392972</data>
+      <data key="d8">152.4033733336255</data>
+      <data key="d9">LINESTRING (538.53620771633 158.2937566782348, 534.0057571392972 152.4033733336255)</data>
+    </node>
+    <node id="(344595690, 5362481496, 2)">
+      <data key="d0">689718107</data>
+      <data key="d1">secondary</data>
+      <data key="d11">3</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">31.6553512148872</data>
+      <data key="d5">534.0057571392972</data>
+      <data key="d6">152.4033733336255</data>
+      <data key="d7">515.0595902395435</data>
+      <data key="d8">127.06985626136884</data>
+      <data key="d9">LINESTRING (534.0057571392972 152.4033733336255, 515.0595902395435 127.06985626136884)</data>
+    </node>
+    <node id="(344595690, 8484526477, 2)">
+      <data key="d0">689955911</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">7.435599216043491</data>
+      <data key="d5">534.0057571392972</data>
+      <data key="d6">152.4033733336255</data>
+      <data key="d7">538.53620771633</data>
+      <data key="d8">158.2937566782348</data>
+      <data key="d9">LINESTRING (534.0057571392972 152.4033733336255, 538.53620771633 158.2937566782348)</data>
+    </node>
+    <node id="(344595690, 65556428, 0)">
+      <data key="d0">[8951814, 8963614]</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">367.08335403466526</data>
+      <data key="d9">LINESTRING (534.0057571392972 152.4033733336255, 524.8174782639835 159.59454324515536, 517.2384618864162 164.22689696354792, 509.63564790738747 167.6385366357863, 501.87886961514596 169.55083935894072, 492.3964256227482 170.43705733912066, 343.8827933414141 174.362991951406, 321.30650674994104 176.02385919122025, 316.62005443382077 180.96122444188222, 311.93360761983786 185.8985922676511, 311.8939048182219 275.93736898340285, 315.78483328723814 313.7763120350428, 315.89590375649277 321.6661949697882)</data>
+      <data key="d5">534.0057571392972</data>
+      <data key="d6">152.4033733336255</data>
+      <data key="d7">315.89590375649277</data>
+      <data key="d8">321.6661949697882</data>
+    </node>
+    <node id="(8484526477, 6472983673, 2)">
+      <data key="d0">689955911</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">124.4258058413168</data>
+      <data key="d5">538.53620771633</data>
+      <data key="d6">158.2937566782348</data>
+      <data key="d7">613.8375733558787</data>
+      <data key="d8">257.2493183459155</data>
+      <data key="d9">LINESTRING (538.53620771633 158.2937566782348, 613.8375733558787 257.2493183459155)</data>
+    </node>
+    <node id="(6472983673, 8484526477, 2)">
+      <data key="d0">689955911</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">124.4258058413168</data>
+      <data key="d5">613.8375733558787</data>
+      <data key="d6">257.2493183459155</data>
+      <data key="d7">538.53620771633</data>
+      <data key="d8">158.2937566782348</data>
+      <data key="d9">LINESTRING (613.8375733558787 257.2493183459155, 538.53620771633 158.2937566782348)</data>
+    </node>
+    <node id="(6472983673, 13256702100, 2)">
+      <data key="d0">517611820</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">62.30540471179363</data>
+      <data key="d5">613.8375733558787</data>
+      <data key="d6">257.2493183459155</data>
+      <data key="d7">651.508760147146</data>
+      <data key="d8">306.82743064686656</data>
+      <data key="d9">LINESTRING (613.8375733558787 257.2493183459155, 651.508760147146 306.82743064686656)</data>
+    </node>
+    <node id="(8484526477, 8484526479, 0)">
+      <data key="d0">913361999</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">47.13495058434182</data>
+      <data key="d9">LINESTRING (538.53620771633 158.2937566782348, 549.0663777750451 154.31084750266746, 554.3555908510461 153.04082873323932, 584.023404102074 145.8893003682606)</data>
+      <data key="d5">538.53620771633</data>
+      <data key="d6">158.2937566782348</data>
+      <data key="d7">584.023404102074</data>
+      <data key="d8">145.8893003682606</data>
+    </node>
+    <node id="(8484526479, 8484526477, 0)">
+      <data key="d0">913361999</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">47.13495058434182</data>
+      <data key="d9">LINESTRING (584.023404102074 145.8893003682606, 554.3555908510461 153.04082873323932, 549.0663777750451 154.31084750266746, 538.53620771633 158.2937566782348)</data>
+      <data key="d5">584.023404102074</data>
+      <data key="d6">145.8893003682606</data>
+      <data key="d7">538.53620771633</data>
+      <data key="d8">158.2937566782348</data>
+    </node>
+    <node id="(7933429519, 8416939964, 0)">
+      <data key="d0">8953030</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">46.25760121855427</data>
+      <data key="d5">493.68790739006363</data>
+      <data key="d6">420.08485914906487</data>
+      <data key="d7">493.45260035037063</data>
+      <data key="d8">466.2395173413679</data>
+      <data key="d9">LINESTRING (493.68790739006363 420.08485914906487, 493.45260035037063 466.2395173413679)</data>
+    </node>
+    <node id="(8416939964, 7933429519, 0)">
+      <data key="d0">8953030</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">46.25760121855427</data>
+      <data key="d5">493.45260035037063</data>
+      <data key="d6">466.2395173413679</data>
+      <data key="d7">493.68790739006363</data>
+      <data key="d8">420.08485914906487</data>
+      <data key="d9">LINESTRING (493.45260035037063 466.2395173413679, 493.68790739006363 420.08485914906487)</data>
+    </node>
+    <node id="(8416939964, 12996275655, 0)">
+      <data key="d0">8953030</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">254.30601779166062</data>
+      <data key="d9">LINESTRING (493.45260035037063 466.2395173413679, 493.2178096730495 503.02965866727754, 492.6112995595904 510.01399799482897, 491.09007708600257 517.2892142240889, 474.4462752834661 560.9023307096213, 472.55755949323066 569.583172918763, 472.10610632784665 576.0918856142089, 469.375789484242 713.3272471930832, 469.3101027745288 716.5110057466663)</data>
+      <data key="d5">493.45260035037063</data>
+      <data key="d6">466.2395173413679</data>
+      <data key="d7">469.3101027745288</data>
+      <data key="d8">716.5110057466663</data>
+    </node>
+    <node id="(8416939964, 8416939968, 0)">
+      <data key="d0">906412172</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">50.89376911888826</data>
+      <data key="d9">LINESTRING (493.45260035037063 466.2395173413679, 524.1763482734095 467.0976354079321, 530.4454167173244 466.1143138129264, 534.8738665399142 459.4437282830477, 540.5377782584401 457.85550371650606)</data>
+      <data key="d5">493.45260035037063</data>
+      <data key="d6">466.2395173413679</data>
+      <data key="d7">540.5377782584401</data>
+      <data key="d8">457.85550371650606</data>
+    </node>
+    <node id="(7933429519, 65556434, 0)">
+      <data key="d0">8953030</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">93.17106491467209</data>
+      <data key="d5">493.68790739006363</data>
+      <data key="d6">420.08485914906487</data>
+      <data key="d7">494.20899338973686</data>
+      <data key="d8">327.1214035889134</data>
+      <data key="d9">LINESTRING (493.68790739006363 420.08485914906487, 494.20899338973686 327.1214035889134)</data>
+    </node>
+    <node id="(7933429519, 7933429523, 0)">
+      <data key="d0">850371616</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">48.218334692938406</data>
+      <data key="d9">LINESTRING (493.68790739006363 420.08485914906487, 519.9058988944162 419.9348066570237, 530.4018356252927 420.44519584532827, 536.4573791901348 421.434829052072, 541.0063771989662 424.42949473578483)</data>
+      <data key="d5">493.68790739006363</data>
+      <data key="d6">420.08485914906487</data>
+      <data key="d7">541.0063771989662</data>
+      <data key="d8">424.42949473578483</data>
+    </node>
+    <node id="(7933429523, 7933429519, 0)">
+      <data key="d0">850371616</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">48.218334692938406</data>
+      <data key="d9">LINESTRING (541.0063771989662 424.42949473578483, 536.4573791901348 421.434829052072, 530.4018356252927 420.44519584532827, 519.9058988944162 419.9348066570237, 493.68790739006363 420.08485914906487)</data>
+      <data key="d5">541.0063771989662</data>
+      <data key="d6">424.42949473578483</data>
+      <data key="d7">493.68790739006363</data>
+      <data key="d8">420.08485914906487</data>
+    </node>
+    <node id="(6473064211, 7023278577, 0)">
+      <data key="d0">751249851</data>
+      <data key="d1">footway</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">35.92048118814838</data>
+      <data key="d9">LINESTRING (617.0375338704325 675.155215005856, 617.0535412005847 671.6159298140556, 614.4847389883362 667.0978168076836, 617.6024322749581 651.1723073171452, 623.3921711896546 641.9405986093916)</data>
+      <data key="d5">617.0375338704325</data>
+      <data key="d6">675.155215005856</data>
+      <data key="d7">623.3921711896546</data>
+      <data key="d8">641.9405986093916</data>
+    </node>
+    <node id="(7023278577, 6473064211, 0)">
+      <data key="d0">751249851</data>
+      <data key="d1">footway</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">35.92048118814838</data>
+      <data key="d9">LINESTRING (623.3921711896546 641.9405986093916, 617.6024322749581 651.1723073171452, 614.4847389883362 667.0978168076836, 617.0535412005847 671.6159298140556, 617.0375338704325 675.155215005856)</data>
+      <data key="d5">623.3921711896546</data>
+      <data key="d6">641.9405986093916</data>
+      <data key="d7">617.0375338704325</data>
+      <data key="d8">675.155215005856</data>
+    </node>
+    <node id="(13256702100, 6472983673, 2)">
+      <data key="d0">517611820</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">62.30540471179363</data>
+      <data key="d5">651.508760147146</data>
+      <data key="d6">306.82743064686656</data>
+      <data key="d7">613.8375733558787</data>
+      <data key="d8">257.2493183459155</data>
+      <data key="d9">LINESTRING (651.508760147146 306.82743064686656, 613.8375733558787 257.2493183459155)</data>
+    </node>
+    <node id="(7953669658, 65447934, 0)">
+      <data key="d0">8963243</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">8.428883755213366</data>
+      <data key="d5">193.10717989702243</data>
+      <data key="d6">109.58965450292453</data>
+      <data key="d7">193.09834079397842</data>
+      <data key="d8">117.99987772200257</data>
+      <data key="d9">LINESTRING (193.10717989702243 109.58965450292453, 193.09834079397842 117.99987772200257)</data>
+    </node>
+    <node id="(7953669658, 7953669659, 0)">
+      <data key="d0">852629954</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">55.98653237011404</data>
+      <data key="d5">193.10717989702243</data>
+      <data key="d6">109.58965450292453</data>
+      <data key="d7">249.1992089699488</data>
+      <data key="d8">108.6344405664131</data>
+      <data key="d9">LINESTRING (193.10717989702243 109.58965450292453, 249.1992089699488 108.6344405664131)</data>
+    </node>
+    <node id="(7953669659, 7953669658, 0)">
+      <data key="d0">852629954</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">55.98653237011404</data>
+      <data key="d5">249.1992089699488</data>
+      <data key="d6">108.6344405664131</data>
+      <data key="d7">193.10717989702243</data>
+      <data key="d8">109.58965450292453</data>
+      <data key="d9">LINESTRING (249.1992089699488 108.6344405664131, 193.10717989702243 109.58965450292453)</data>
+    </node>
+    <node id="(7953669658, 7330712191, 0)">
+      <data key="d0">[784680065, 8963243]</data>
+      <data key="d1">['service', 'residential']</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">94.76769060704257</data>
+      <data key="d9">LINESTRING (193.10717989702243 109.58965450292453, 192.9247661123518 55.94170989468694, 192.24087714741472 15.03762238426134)</data>
+      <data key="d5">193.10717989702243</data>
+      <data key="d6">109.58965450292453</data>
+      <data key="d7">192.24087714741472</data>
+      <data key="d8">15.03762238426134</data>
+    </node>
+    <node id="(7330712191, 7953669658, 0)">
+      <data key="d0">[784680065, 8963243]</data>
+      <data key="d1">['service', 'residential']</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">94.76769060704257</data>
+      <data key="d9">LINESTRING (192.24087714741472 15.03762238426134, 192.9247661123518 55.94170989468694, 193.10717989702243 109.58965450292453)</data>
+      <data key="d5">192.24087714741472</data>
+      <data key="d6">15.03762238426134</data>
+      <data key="d7">193.10717989702243</data>
+      <data key="d8">109.58965450292453</data>
+    </node>
+    <node id="(65623068, 65563757, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">15.155913090115776</data>
+      <data key="d5">70.07796709286049</data>
+      <data key="d6">504.4972283341922</data>
+      <data key="d7">69.9614771027118</data>
+      <data key="d8">519.6191489882767</data>
+      <data key="d9">LINESTRING (70.07796709286049 504.4972283341922, 69.9614771027118 519.6191489882767)</data>
+    </node>
+    <node id="(65563757, 7371591110, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">71.05376617019112</data>
+      <data key="d5">69.9614771027118</data>
+      <data key="d6">519.6191489882767</data>
+      <data key="d7">69.41477130993735</data>
+      <data key="d8">590.5135523797944</data>
+      <data key="d9">LINESTRING (69.9614771027118 519.6191489882767, 69.41477130993735 590.5135523797944)</data>
+    </node>
+    <node id="(65563757, 65623068, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">15.155913090115776</data>
+      <data key="d5">69.9614771027118</data>
+      <data key="d6">519.6191489882767</data>
+      <data key="d7">70.07796709286049</data>
+      <data key="d8">504.4972283341922</data>
+      <data key="d9">LINESTRING (69.9614771027118 519.6191489882767, 70.07796709286049 504.4972283341922)</data>
+    </node>
+    <node id="(65563757, 65563751, 0)">
+      <data key="d0">1086351740</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">326.9473259859199</data>
+      <data key="d9">LINESTRING (69.9614771027118 519.6191489882767, -212.64962249796372 518.3484776318073, -222.1418573623523 518.4476301632822, -227.67308998317458 517.2526759346947, -231.91871751844883 514.9270159509033, -235.67990570957772 511.9291047626175, -239.54388921987265 505.74585155956447, -240.3215065986151 499.94673393759876, -239.9372502771439 492.99354912061244)</data>
+      <data key="d5">69.9614771027118</data>
+      <data key="d6">519.6191489882767</data>
+      <data key="d7">-239.9372502771439</data>
+      <data key="d8">492.99354912061244</data>
+    </node>
+    <node id="(65623068, 65506035, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">87.35500254952822</data>
+      <data key="d5">70.07796709286049</data>
+      <data key="d6">504.4972283341922</data>
+      <data key="d7">70.74310189881362</data>
+      <data key="d8">417.33810838637874</data>
+      <data key="d9">LINESTRING (70.07796709286049 504.4972283341922, 70.74310189881362 417.33810838637874)</data>
+    </node>
+    <node id="(65506035, 65506037, 0)">
+      <data key="d0">8939767</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">65.952836199923</data>
+      <data key="d5">70.74310189881362</data>
+      <data key="d6">417.33810838637874</data>
+      <data key="d7">136.82645497052</data>
+      <data key="d8">416.6653354386799</data>
+      <data key="d9">LINESTRING (70.74310189881362 417.33810838637874, 136.82645497052 416.6653354386799)</data>
+    </node>
+    <node id="(65506035, 65623068, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">87.35500254952822</data>
+      <data key="d5">70.74310189881362</data>
+      <data key="d6">417.33810838637874</data>
+      <data key="d7">70.07796709286049</data>
+      <data key="d8">504.4972283341922</data>
+      <data key="d9">LINESTRING (70.74310189881362 417.33810838637874, 70.07796709286049 504.4972283341922)</data>
+    </node>
+    <node id="(65506035, 65556420, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">95.06082635917592</data>
+      <data key="d9">LINESTRING (70.74310189881362 417.33810838637874, 71.41388563124929 329.5799022684805, 71.47209363512229 322.49049785360694)</data>
+      <data key="d5">70.74310189881362</data>
+      <data key="d6">417.33810838637874</data>
+      <data key="d7">71.47209363512229</data>
+      <data key="d8">322.49049785360694</data>
+    </node>
+    <node id="(65506035, 65638052, 0)">
+      <data key="d0">8962762</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">308.63222880659976</data>
+      <data key="d9">LINESTRING (70.74310189881362 417.33810838637874, -75.79596299515106 417.07381644053385, -238.5128767680144 416.0604897197336)</data>
+      <data key="d5">70.74310189881362</data>
+      <data key="d6">417.33810838637874</data>
+      <data key="d7">-238.5128767680144</data>
+      <data key="d8">416.0604897197336</data>
+    </node>
+    <node id="(65623068, 65679352, 0)">
+      <data key="d0">8969369</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">65.19712674966118</data>
+      <data key="d5">70.07796709286049</data>
+      <data key="d6">504.4972283341922</data>
+      <data key="d7">135.4047894764226</data>
+      <data key="d8">505.10437107272446</data>
+      <data key="d9">LINESTRING (70.07796709286049 504.4972283341922, 135.4047894764226 505.10437107272446)</data>
+    </node>
+    <node id="(65679352, 65623068, 0)">
+      <data key="d0">8969369</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">65.19712674966118</data>
+      <data key="d5">135.4047894764226</data>
+      <data key="d6">505.10437107272446</data>
+      <data key="d7">70.07796709286049</data>
+      <data key="d8">504.4972283341922</data>
+      <data key="d9">LINESTRING (135.4047894764226 505.10437107272446, 70.07796709286049 504.4972283341922)</data>
+    </node>
+    <node id="(65623070, 7371591110, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">29.044204249034664</data>
+      <data key="d5">69.19374938018154</data>
+      <data key="d6">619.49263592856</data>
+      <data key="d7">69.41477130993735</data>
+      <data key="d8">590.5135523797944</data>
+      <data key="d9">LINESTRING (69.19374938018154 619.49263592856, 69.41477130993735 590.5135523797944)</data>
+    </node>
+    <node id="(7371591110, 65623070, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">29.044204249034664</data>
+      <data key="d5">69.41477130993735</data>
+      <data key="d6">590.5135523797944</data>
+      <data key="d7">69.19374938018154</data>
+      <data key="d8">619.49263592856</data>
+      <data key="d9">LINESTRING (69.41477130993735 590.5135523797944, 69.19374938018154 619.49263592856)</data>
+    </node>
+    <node id="(7371591110, 65563757, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">71.05376617019112</data>
+      <data key="d5">69.41477130993735</data>
+      <data key="d6">590.5135523797944</data>
+      <data key="d7">69.9614771027118</data>
+      <data key="d8">519.6191489882767</data>
+      <data key="d9">LINESTRING (69.41477130993735 590.5135523797944, 69.9614771027118 519.6191489882767)</data>
+    </node>
+    <node id="(7371591110, 7371591112, 0)">
+      <data key="d0">788467444</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">66.73471075195879</data>
+      <data key="d9">LINESTRING (69.41477130993735 590.5135523797944, 126.91479273932055 591.0577031914145, 135.75353716232348 587.9680998176336)</data>
+      <data key="d5">69.41477130993735</data>
+      <data key="d6">590.5135523797944</data>
+      <data key="d7">135.75353716232348</data>
+      <data key="d8">587.9680998176336</data>
+    </node>
+    <node id="(65623070, 65623073, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">99.21953131518175</data>
+      <data key="d9">LINESTRING (69.19374938018154 619.49263592856, 68.48851550207473 711.8218586305156, 68.43428943061735 718.4896797752008)</data>
+      <data key="d5">69.19374938018154</data>
+      <data key="d6">619.49263592856</data>
+      <data key="d7">68.43428943061735</data>
+      <data key="d8">718.4896797752008</data>
+    </node>
+    <node id="(65623073, 65623070, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">99.21953131518175</data>
+      <data key="d9">LINESTRING (68.43428943061735 718.4896797752008, 68.48851550207473 711.8218586305156, 69.19374938018154 619.49263592856)</data>
+      <data key="d5">68.43428943061735</data>
+      <data key="d6">718.4896797752008</data>
+      <data key="d7">69.19374938018154</data>
+      <data key="d8">619.49263592856</data>
+    </node>
+    <node id="(65623070, 65537102, 0)">
+      <data key="d0">8961581</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">379.6729128484077</data>
+      <data key="d9">LINESTRING (69.19374938018154 619.49263592856, 60.5894300310174 619.3335747863166, -278.00503050733823 612.9199847080745, -311.1883454078343 612.8738017785363)</data>
+      <data key="d5">69.19374938018154</data>
+      <data key="d6">619.49263592856</data>
+      <data key="d7">-311.1883454078343</data>
+      <data key="d8">612.8738017785363</data>
+    </node>
+    <node id="(65537102, 65623070, 0)">
+      <data key="d0">8961581</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">379.67291284840775</data>
+      <data key="d9">LINESTRING (-311.1883454078343 612.8738017785363, -278.00503050733823 612.9199847080745, 60.5894300310174 619.3335747863166, 69.19374938018154 619.49263592856)</data>
+      <data key="d5">-311.1883454078343</data>
+      <data key="d6">612.8738017785363</data>
+      <data key="d7">69.19374938018154</data>
+      <data key="d8">619.49263592856</data>
+    </node>
+    <node id="(65638052, 65506035, 0)">
+      <data key="d0">8962762</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">308.63222880659976</data>
+      <data key="d9">LINESTRING (-238.5128767680144 416.0604897197336, -75.79596299515106 417.07381644053385, 70.74310189881362 417.33810838637874)</data>
+      <data key="d5">-238.5128767680144</data>
+      <data key="d6">416.0604897197336</data>
+      <data key="d7">70.74310189881362</data>
+      <data key="d8">417.33810838637874</data>
+    </node>
+    <node id="(65516966, 65516967, 0)">
+      <data key="d0">8941719</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">202.56169134741927</data>
+      <data key="d5">-138.23798535694368</data>
+      <data key="d6">216.66769354697317</data>
+      <data key="d7">64.7193175322609</data>
+      <data key="d8">219.2173041785136</data>
+      <data key="d9">LINESTRING (-138.23798535694368 216.66769354697317, 64.7193175322609 219.2173041785136)</data>
+    </node>
+    <node id="(65516967, 65516966, 0)">
+      <data key="d0">8941719</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">202.56169134741927</data>
+      <data key="d5">64.7193175322609</data>
+      <data key="d6">219.2173041785136</data>
+      <data key="d7">-138.23798535694368</data>
+      <data key="d8">216.66769354697317</data>
+      <data key="d9">LINESTRING (64.7193175322609 219.2173041785136, -138.23798535694368 216.66769354697317)</data>
+    </node>
+    <node id="(65516967, 65447932, 0)">
+      <data key="d0">8966663</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">102.29264540579929</data>
+      <data key="d5">64.7193175322609</data>
+      <data key="d6">219.2173041785136</data>
+      <data key="d7">64.74613294342998</data>
+      <data key="d8">117.1510805496946</data>
+      <data key="d9">LINESTRING (64.7193175322609 219.2173041785136, 64.74613294342998 117.1510805496946)</data>
+    </node>
+    <node id="(65516967, 65556420, 0)">
+      <data key="d0">8966663</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">104.37385163151289</data>
+      <data key="d9">LINESTRING (64.7193175322609 219.2173041785136, 66.7483679089928 309.8636419172399, 71.47209363512229 322.49049785360694)</data>
+      <data key="d5">64.7193175322609</data>
+      <data key="d6">219.2173041785136</data>
+      <data key="d7">71.47209363512229</data>
+      <data key="d8">322.49049785360694</data>
+    </node>
+    <node id="(65447932, 5862300244, 0)">
+      <data key="d0">8966663</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">100.62858787351978</data>
+      <data key="d5">64.74613294342998</data>
+      <data key="d6">117.1510805496946</data>
+      <data key="d7">64.41187642025761</data>
+      <data key="d8">16.745766066014767</data>
+      <data key="d9">LINESTRING (64.74613294342998 117.1510805496946, 64.41187642025761 16.745766066014767)</data>
+    </node>
+    <node id="(65447932, 65516967, 0)">
+      <data key="d0">8966663</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">102.29264540579929</data>
+      <data key="d5">64.74613294342998</data>
+      <data key="d6">117.1510805496946</data>
+      <data key="d7">64.7193175322609</data>
+      <data key="d8">219.2173041785136</data>
+      <data key="d9">LINESTRING (64.74613294342998 117.1510805496946, 64.7193175322609 219.2173041785136)</data>
+    </node>
+    <node id="(65447932, 65447934, 0)">
+      <data key="d0">413459721</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">128.09468070414653</data>
+      <data key="d9">LINESTRING (64.74613294342998 117.1510805496946, 75.19343570352066 117.22770721185952, 193.09834079397842 117.99987772200257)</data>
+      <data key="d5">64.74613294342998</data>
+      <data key="d6">117.1510805496946</data>
+      <data key="d7">193.09834079397842</data>
+      <data key="d8">117.99987772200257</data>
+    </node>
+    <node id="(65447932, 6575329083, 0)">
+      <data key="d0">413459721</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">171.05959637887426</data>
+      <data key="d9">LINESTRING (64.74613294342998 117.1510805496946, 56.139722238644026 117.15844838973135, -106.65247884276323 118.80488326959312)</data>
+      <data key="d5">64.74613294342998</data>
+      <data key="d6">117.1510805496946</data>
+      <data key="d7">-106.65247884276323</data>
+      <data key="d8">118.80488326959312</data>
+    </node>
+    <node id="(65556420, 65556422, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">121.01660493645966</data>
+      <data key="d9">LINESTRING (71.47209363512229 322.49049785360694, 79.05474849347956 323.9824392851442, 79.63853817479685 324.04343913542107, 192.582495321054 324.79093686211854)</data>
+      <data key="d5">71.47209363512229</data>
+      <data key="d6">322.49049785360694</data>
+      <data key="d7">192.582495321054</data>
+      <data key="d8">324.79093686211854</data>
+    </node>
+    <node id="(65556420, 65506035, 0)">
+      <data key="d0">8960015</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">95.06082635917592</data>
+      <data key="d9">LINESTRING (71.47209363512229 322.49049785360694, 71.41388563124929 329.5799022684805, 70.74310189881362 417.33810838637874)</data>
+      <data key="d5">71.47209363512229</data>
+      <data key="d6">322.49049785360694</data>
+      <data key="d7">70.74310189881362</data>
+      <data key="d8">417.33810838637874</data>
+    </node>
+    <node id="(65556420, 65516967, 0)">
+      <data key="d0">8966663</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">104.37385163151289</data>
+      <data key="d9">LINESTRING (71.47209363512229 322.49049785360694, 66.7483679089928 309.8636419172399, 64.7193175322609 219.2173041785136)</data>
+      <data key="d5">71.47209363512229</data>
+      <data key="d6">322.49049785360694</data>
+      <data key="d7">64.7193175322609</data>
+      <data key="d8">219.2173041785136</data>
+    </node>
+    <node id="(65556420, 65556419, 0)">
+      <data key="d0">1086350383</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">208.48075464685598</data>
+      <data key="d9">LINESTRING (71.47209363512229 322.49049785360694, 58.67719318473246 316.02291121007875, -120.85622549662367 314.1382070146501, -135.8526390909683 314.8288617837243)</data>
+      <data key="d5">71.47209363512229</data>
+      <data key="d6">322.49049785360694</data>
+      <data key="d7">-135.8526390909683</data>
+      <data key="d8">314.8288617837243</data>
+    </node>
+    <node id="(6575329083, 65447932, 0)">
+      <data key="d0">413459721</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">171.05959637887426</data>
+      <data key="d9">LINESTRING (-106.65247884276323 118.80488326959312, 56.139722238644026 117.15844838973135, 64.74613294342998 117.1510805496946)</data>
+      <data key="d5">-106.65247884276323</data>
+      <data key="d6">118.80488326959312</data>
+      <data key="d7">64.74613294342998</data>
+      <data key="d8">117.1510805496946</data>
+    </node>
+    <node id="(12996275655, 8416939964, 0)">
+      <data key="d0">8953030</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">254.30601779166062</data>
+      <data key="d9">LINESTRING (469.3101027745288 716.5110057466663, 469.375789484242 713.3272471930832, 472.10610632784665 576.0918856142089, 472.55755949323066 569.583172918763, 474.4462752834661 560.9023307096213, 491.09007708600257 517.2892142240889, 492.6112995595904 510.01399799482897, 493.2178096730495 503.02965866727754, 493.45260035037063 466.2395173413679)</data>
+      <data key="d5">469.3101027745288</data>
+      <data key="d6">716.5110057466663</data>
+      <data key="d7">493.45260035037063</data>
+      <data key="d8">466.2395173413679</data>
+    </node>
+    <node id="(8416939968, 8416939964, 0)">
+      <data key="d0">906412172</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">50.89376911888826</data>
+      <data key="d9">LINESTRING (540.5377782584401 457.85550371650606, 534.8738665399142 459.4437282830477, 530.4454167173244 466.1143138129264, 524.1763482734095 467.0976354079321, 493.45260035037063 466.2395173413679)</data>
+      <data key="d5">540.5377782584401</data>
+      <data key="d6">457.85550371650606</data>
+      <data key="d7">493.45260035037063</data>
+      <data key="d8">466.2395173413679</data>
+    </node>
+    <node id="(65601088, 65556428, 0)">
+      <data key="d0">8956404</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">406.23276884369864</data>
+      <data key="d9">LINESTRING (315.96266146271955 723.2982264957391, 314.18664444051683 715.4591108639725, 314.08176584972534 650.0063172983937, 304.8856080432888 622.646550770849, 301.0762777342461 601.4181857225485, 307.1383709824877 566.2477969485335, 315.4142573309364 537.5781357274391, 315.73979724326637 329.71997383097187, 315.89590375649277 321.6661949697882)</data>
+      <data key="d5">315.96266146271955</data>
+      <data key="d6">723.2982264957391</data>
+      <data key="d7">315.89590375649277</data>
+      <data key="d8">321.6661949697882</data>
+    </node>
+    <node id="(65556428, 65556432, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">86.12194038285962</data>
+      <data key="d9">LINESTRING (315.89590375649277 321.6661949697882, 323.6165747854393 321.6728854193352, 402.1877508673351 322.5742030311376)</data>
+      <data key="d5">315.89590375649277</data>
+      <data key="d6">321.6661949697882</data>
+      <data key="d7">402.1877508673351</data>
+      <data key="d8">322.5742030311376</data>
+    </node>
+    <node id="(65556428, 65556425, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">96.94729138595713</data>
+      <data key="d9">LINESTRING (315.89590375649277 321.6661949697882, 309.1856619687751 321.54704906698316, 260.25932522071525 322.3589541176334, 218.8042256369954 324.2738195611164)</data>
+      <data key="d5">315.89590375649277</data>
+      <data key="d6">321.6661949697882</data>
+      <data key="d7">218.8042256369954</data>
+      <data key="d8">324.2738195611164</data>
+    </node>
+    <node id="(65556428, 65601088, 0)">
+      <data key="d0">8956404</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">406.23276884369864</data>
+      <data key="d9">LINESTRING (315.89590375649277 321.6661949697882, 315.73979724326637 329.71997383097187, 315.4142573309364 537.5781357274391, 307.1383709824877 566.2477969485335, 301.0762777342461 601.4181857225485, 304.8856080432888 622.646550770849, 314.08176584972534 650.0063172983937, 314.18664444051683 715.4591108639725, 315.96266146271955 723.2982264957391)</data>
+      <data key="d5">315.89590375649277</data>
+      <data key="d6">321.6661949697882</data>
+      <data key="d7">315.96266146271955</data>
+      <data key="d8">723.2982264957391</data>
+    </node>
+    <node id="(65556428, 344595690, 0)">
+      <data key="d0">[8963614, 8951814]</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">367.0833540346653</data>
+      <data key="d9">LINESTRING (315.89590375649277 321.6661949697882, 315.78483328723814 313.7763120350428, 311.8939048182219 275.93736898340285, 311.93360761983786 185.8985922676511, 316.62005443382077 180.96122444188222, 321.30650674994104 176.02385919122025, 343.8827933414141 174.362991951406, 492.3964256227482 170.43705733912066, 501.87886961514596 169.55083935894072, 509.63564790738747 167.6385366357863, 517.2384618864162 164.22689696354792, 524.8174782639835 159.59454324515536, 534.0057571392972 152.4033733336255)</data>
+      <data key="d5">315.89590375649277</data>
+      <data key="d6">321.6661949697882</data>
+      <data key="d7">534.0057571392972</data>
+      <data key="d8">152.4033733336255</data>
+    </node>
+    <node id="(65566145, 65556425, 0)">
+      <data key="d0">8949611</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">399.953112698826</data>
+      <data key="d9">LINESTRING (218.47138610715047 721.8521224451251, 217.61565754329786 714.0550387143157, 216.3421200349694 684.9508222108707, 211.7785950222751 647.9931684457697, 209.8988131589722 614.6558634475805, 212.12527967849746 584.3199472427368, 216.34671592887025 548.0779961245134, 218.1690653753467 519.2805141909048, 213.29918491118588 460.4509370676242, 211.91621358506382 401.7764623439871, 218.53400848712772 357.45758976694196, 218.8042256369954 324.2738195611164)</data>
+      <data key="d5">218.47138610715047</data>
+      <data key="d6">721.8521224451251</data>
+      <data key="d7">218.8042256369954</data>
+      <data key="d8">324.2738195611164</data>
+    </node>
+    <node id="(65556425, 65556422, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">26.173721678515072</data>
+      <data key="d5">218.8042256369954</data>
+      <data key="d6">324.2738195611164</data>
+      <data key="d7">192.582495321054</data>
+      <data key="d8">324.79093686211854</data>
+      <data key="d9">LINESTRING (218.8042256369954 324.2738195611164, 192.582495321054 324.79093686211854)</data>
+    </node>
+    <node id="(65556425, 65556428, 0)">
+      <data key="d0">8948589</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">96.94729138595713</data>
+      <data key="d9">LINESTRING (218.8042256369954 324.2738195611164, 260.25932522071525 322.3589541176334, 309.1856619687751 321.54704906698316, 315.89590375649277 321.6661949697882)</data>
+      <data key="d5">218.8042256369954</data>
+      <data key="d6">324.2738195611164</data>
+      <data key="d7">315.89590375649277</data>
+      <data key="d8">321.6661949697882</data>
+    </node>
+    <node id="(65556425, 65566145, 0)">
+      <data key="d0">8949611</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">399.9531126988261</data>
+      <data key="d9">LINESTRING (218.8042256369954 324.2738195611164, 218.53400848712772 357.45758976694196, 211.91621358506382 401.7764623439871, 213.29918491118588 460.4509370676242, 218.1690653753467 519.2805141909048, 216.34671592887025 548.0779961245134, 212.12527967849746 584.3199472427368, 209.8988131589722 614.6558634475805, 211.7785950222751 647.9931684457697, 216.3421200349694 684.9508222108707, 217.61565754329786 714.0550387143157, 218.47138610715047 721.8521224451251)</data>
+      <data key="d5">218.8042256369954</data>
+      <data key="d6">324.2738195611164</data>
+      <data key="d7">218.47138610715047</data>
+      <data key="d8">721.8521224451251</data>
+    </node>
+    <node id="(65556419, 65556420, 0)">
+      <data key="d0">1086350383</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">208.48075464685598</data>
+      <data key="d9">LINESTRING (-135.8526390909683 314.8288617837243, -120.85622549662367 314.1382070146501, 58.67719318473246 316.02291121007875, 71.47209363512229 322.49049785360694)</data>
+      <data key="d5">-135.8526390909683</data>
+      <data key="d6">314.8288617837243</data>
+      <data key="d7">71.47209363512229</data>
+      <data key="d8">322.49049785360694</data>
+    </node>
+    <node id="(7371591112, 7371591110, 0)">
+      <data key="d0">788467444</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">66.73471075195879</data>
+      <data key="d9">LINESTRING (135.75353716232348 587.9680998176336, 126.91479273932055 591.0577031914145, 69.41477130993735 590.5135523797944)</data>
+      <data key="d5">135.75353716232348</data>
+      <data key="d6">587.9680998176336</data>
+      <data key="d7">69.41477130993735</data>
+      <data key="d8">590.5135523797944</data>
+    </node>
+    <node id="(7896981076, 5862300244, 0)">
+      <data key="d0">8948134</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">119.80818540099638</data>
+      <data key="d5">-55.62996803212445</data>
+      <data key="d6">15.211877344176173</data>
+      <data key="d7">64.41187642025761</data>
+      <data key="d8">16.745766066014767</data>
+      <data key="d9">LINESTRING (-55.62996803212445 15.211877344176173, 64.41187642025761 16.745766066014767)</data>
+    </node>
+    <node id="(5862300244, 7896981076, 0)">
+      <data key="d0">8948134</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">119.80818540099638</data>
+      <data key="d5">64.41187642025761</data>
+      <data key="d6">16.745766066014767</data>
+      <data key="d7">-55.62996803212445</data>
+      <data key="d8">15.211877344176173</data>
+      <data key="d9">LINESTRING (64.41187642025761 16.745766066014767, -55.62996803212445 15.211877344176173)</data>
+    </node>
+    <node id="(5862300244, 65447932, 0)">
+      <data key="d0">8966663</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">100.62858787351978</data>
+      <data key="d5">64.41187642025761</data>
+      <data key="d6">16.745766066014767</data>
+      <data key="d7">64.74613294342998</data>
+      <data key="d8">117.1510805496946</data>
+      <data key="d9">LINESTRING (64.41187642025761 16.745766066014767, 64.74613294342998 117.1510805496946)</data>
+    </node>
+    <node id="(5862300244, 5362481500, 0)">
+      <data key="d0">8966663</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">104.44811739134362</data>
+      <data key="d9">LINESTRING (64.41187642025761 16.745766066014767, 64.63789980742149 -78.30625863419846, 64.66259137587622 -87.47081229276955)</data>
+      <data key="d5">64.41187642025761</data>
+      <data key="d6">16.745766066014767</data>
+      <data key="d7">64.66259137587622</data>
+      <data key="d8">-87.47081229276955</data>
+    </node>
+    <node id="(5362481500, 5862300244, 0)">
+      <data key="d0">8966663</data>
+      <data key="d1">residential</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">104.44811739134362</data>
+      <data key="d9">LINESTRING (64.66259137587622 -87.47081229276955, 64.63789980742149 -78.30625863419846, 64.41187642025761 16.745766066014767)</data>
+      <data key="d5">64.66259137587622</data>
+      <data key="d6">-87.47081229276955</data>
+      <data key="d7">64.41187642025761</data>
+      <data key="d8">16.745766066014767</data>
+    </node>
+    <node id="(5362481496, 5362481510, 0)">
+      <data key="d0">8939302</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">54.335664265208976</data>
+      <data key="d5">515.0595902395435</data>
+      <data key="d6">127.06985626136884</data>
+      <data key="d7">482.2854493788909</data>
+      <data key="d8">83.77458909898996</data>
+      <data key="d9">LINESTRING (515.0595902395435 127.06985626136884, 482.2854493788909 83.77458909898996)</data>
+    </node>
+    <node id="(5362481510, 5362481496, 0)">
+      <data key="d0">8939302</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">54.335664265208976</data>
+      <data key="d5">482.2854493788909</data>
+      <data key="d6">83.77458909898996</data>
+      <data key="d7">515.0595902395435</data>
+      <data key="d8">127.06985626136884</data>
+      <data key="d9">LINESTRING (482.2854493788909 83.77458909898996, 515.0595902395435 127.06985626136884)</data>
+    </node>
+    <node id="(5362481510, 5362481509, 2)">
+      <data key="d0">689955910</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">113.13952228033527</data>
+      <data key="d5">482.2854493788909</data>
+      <data key="d6">83.77458909898996</data>
+      <data key="d7">415.94204822473694</data>
+      <data key="d8">-7.771625307854265</data>
+      <data key="d9">LINESTRING (482.2854493788909 83.77458909898996, 415.94204822473694 -7.771625307854265)</data>
+    </node>
+    <node id="(5362481510, 6892255221, 0)">
+      <data key="d0">[8929528, 736170283]</data>
+      <data key="d1">['service', 'residential']</data>
+      <data key="d2">False</data>
+      <data key="d3">[False, True]</data>
+      <data key="d4">128.1744583463287</data>
+      <data key="d9">LINESTRING (482.2854493788909 83.77458909898996, 469.1566359978169 84.4819270526059, 362.52831003814936 95.24118000501767, 355.26899695326574 98.84484254661947)</data>
+      <data key="d5">482.2854493788909</data>
+      <data key="d6">83.77458909898996</data>
+      <data key="d7">355.26899695326574</data>
+      <data key="d8">98.84484254661947</data>
+    </node>
+    <node id="(5362481496, 344595690, 2)">
+      <data key="d0">689718107</data>
+      <data key="d1">secondary</data>
+      <data key="d11">3</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">31.6553512148872</data>
+      <data key="d5">515.0595902395435</data>
+      <data key="d6">127.06985626136884</data>
+      <data key="d7">534.0057571392972</data>
+      <data key="d8">152.4033733336255</data>
+      <data key="d9">LINESTRING (515.0595902395435 127.06985626136884, 534.0057571392972 152.4033733336255)</data>
+    </node>
+    <node id="(272194686, 65588208, 0)">
+      <data key="d0">8953669</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">92.98461025242753</data>
+      <data key="d9">LINESTRING (557.7839440467069 633.7931482749991, 559.7947671052534 647.6371738873422, 560.0398907737108 718.6168713509105, 560.009805729147 726.4277569861151)</data>
+      <data key="d5">557.7839440467069</data>
+      <data key="d6">633.7931482749991</data>
+      <data key="d7">560.009805729147</data>
+      <data key="d8">726.4277569861151</data>
+    </node>
+    <node id="(65588208, 272194686, 0)">
+      <data key="d0">8953669</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">92.98461025242753</data>
+      <data key="d9">LINESTRING (560.009805729147 726.4277569861151, 560.0398907737108 718.6168713509105, 559.7947671052534 647.6371738873422, 557.7839440467069 633.7931482749991)</data>
+      <data key="d5">560.009805729147</data>
+      <data key="d6">726.4277569861151</data>
+      <data key="d7">557.7839440467069</data>
+      <data key="d8">633.7931482749991</data>
+    </node>
+    <node id="(65658334, 65658346, 0)">
+      <data key="d0">8965862</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">301.1449923619692</data>
+      <data key="d9">LINESTRING (377.55118959827814 423.7521945377812, 372.28722205467056 441.96524134650826, 370.5152566640172 716.2046569669619, 370.2513796215644 723.4807388950139)</data>
+      <data key="d5">377.55118959827814</data>
+      <data key="d6">423.7521945377812</data>
+      <data key="d7">370.2513796215644</data>
+      <data key="d8">723.4807388950139</data>
+    </node>
+    <node id="(65658346, 65658334, 0)">
+      <data key="d0">8965862</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">301.1449923619692</data>
+      <data key="d9">LINESTRING (370.2513796215644 723.4807388950139, 370.5152566640172 716.2046569669619, 372.28722205467056 441.96524134650826, 377.55118959827814 423.7521945377812)</data>
+      <data key="d5">370.2513796215644</data>
+      <data key="d6">723.4807388950139</data>
+      <data key="d7">377.55118959827814</data>
+      <data key="d8">423.7521945377812</data>
+    </node>
+    <node id="(65433314, 5362481511, 0)">
+      <data key="d0">[8952376, 8951545, 127145071]</data>
+      <data key="d1">['cycleway', 'residential']</data>
+      <data key="d2">False</data>
+      <data key="d3">[False, True]</data>
+      <data key="d4">311.93285516437857</data>
+      <data key="d9">LINESTRING (466.9268978598993 -83.3460859595798, 466.85734008043073 -44.35751846199855, 468.7064141072333 -31.1586081283167, 474.62193523719907 -19.130438096821308, 485.5334961634362 -5.468120187520981, 512.2978635256877 31.10164574254304, 517.8400981777813 39.542485108133405, 530.2957517777104 58.412202399689704, 536.9692880753428 67.99554963735864, 558.3324388902402 80.33720584679395, 663.060712015722 80.4025458409451, 672.080868199002 76.93797808187082)</data>
+      <data key="d5">466.9268978598993</data>
+      <data key="d6">-83.3460859595798</data>
+      <data key="d7">672.080868199002</data>
+      <data key="d8">76.93797808187082</data>
+    </node>
+    <node id="(5362481511, 65433314, 0)">
+      <data key="d0">[8952376, 8951545, 127145071]</data>
+      <data key="d1">['cycleway', 'residential']</data>
+      <data key="d2">False</data>
+      <data key="d3">[False, True]</data>
+      <data key="d4">311.93285516437857</data>
+      <data key="d9">LINESTRING (672.080868199002 76.93797808187082, 663.060712015722 80.4025458409451, 558.3324388902402 80.33720584679395, 536.9692880753428 67.99554963735864, 530.2957517777104 58.412202399689704, 517.8400981777813 39.542485108133405, 512.2978635256877 31.10164574254304, 485.5334961634362 -5.468120187520981, 474.62193523719907 -19.130438096821308, 468.7064141072333 -31.1586081283167, 466.85734008043073 -44.35751846199855, 466.9268978598993 -83.3460859595798)</data>
+      <data key="d5">672.080868199002</data>
+      <data key="d6">76.93797808187082</data>
+      <data key="d7">466.9268978598993</data>
+      <data key="d8">-83.3460859595798</data>
+    </node>
+    <node id="(5362481509, 5362481510, 2)">
+      <data key="d0">689955910</data>
+      <data key="d1">secondary</data>
+      <data key="d11">2</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">113.13952228033527</data>
+      <data key="d5">415.94204822473694</data>
+      <data key="d6">-7.771625307854265</data>
+      <data key="d7">482.2854493788909</data>
+      <data key="d8">83.77458909898996</data>
+      <data key="d9">LINESTRING (415.94204822473694 -7.771625307854265, 482.2854493788909 83.77458909898996)</data>
+    </node>
+    <node id="(6892255221, 5362481510, 0)">
+      <data key="d0">[8929528, 736170283]</data>
+      <data key="d1">['service', 'residential']</data>
+      <data key="d2">False</data>
+      <data key="d3">[False, True]</data>
+      <data key="d4">128.1744583463287</data>
+      <data key="d9">LINESTRING (355.26899695326574 98.84484254661947, 362.52831003814936 95.24118000501767, 469.1566359978169 84.4819270526059, 482.2854493788909 83.77458909898996)</data>
+      <data key="d5">355.26899695326574</data>
+      <data key="d6">98.84484254661947</data>
+      <data key="d7">482.2854493788909</data>
+      <data key="d8">83.77458909898996</data>
+    </node>
+    <node id="(6892255221, 6892255224, 0)">
+      <data key="d0">736170286</data>
+      <data key="d1">service</data>
+      <data key="d2">True</data>
+      <data key="d3">False</data>
+      <data key="d4">23.61548192970458</data>
+      <data key="d9">LINESTRING (355.26899695326574 98.84484254661947, 349.72316757403314 103.82950943848118, 338.49020660459064 104.4329980397597, 334.95457531511784 100.99315629107878)</data>
+      <data key="d5">355.26899695326574</data>
+      <data key="d6">98.84484254661947</data>
+      <data key="d7">334.95457531511784</data>
+      <data key="d8">100.99315629107878</data>
+    </node>
+    <node id="(65563751, 65563757, 0)">
+      <data key="d0">1086351740</data>
+      <data key="d1">residential</data>
+      <data key="d10">25 mph</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">326.94732598591986</data>
+      <data key="d9">LINESTRING (-239.9372502771439 492.99354912061244, -240.3215065986151 499.94673393759876, -239.54388921987265 505.74585155956447, -235.67990570957772 511.9291047626175, -231.91871751844883 514.9270159509033, -227.67308998317458 517.2526759346947, -222.1418573623523 518.4476301632822, -212.64962249796372 518.3484776318073, 69.9614771027118 519.6191489882767)</data>
+      <data key="d5">-239.9372502771439</data>
+      <data key="d6">492.99354912061244</data>
+      <data key="d7">69.9614771027118</data>
+      <data key="d8">519.6191489882767</data>
+    </node>
+    <node id="(65506037, 65506035, 0)">
+      <data key="d0">8939767</data>
+      <data key="d1">residential</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">65.952836199923</data>
+      <data key="d5">136.82645497052</data>
+      <data key="d6">416.6653354386799</data>
+      <data key="d7">70.74310189881362</data>
+      <data key="d8">417.33810838637874</data>
+      <data key="d9">LINESTRING (136.82645497052 416.6653354386799, 70.74310189881362 417.33810838637874)</data>
+    </node>
+    <node id="(6892255224, 6892255231, 0)">
+      <data key="d0">736170284</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">36.82937401276155</data>
+      <data key="d9">LINESTRING (334.95457531511784 100.99315629107878, 326.3165710957255 95.92935052560642, 321.81654211797286 93.34580410923809, 318.3150833323598 92.83547845901921, 313.3624103659531 94.09774414123967, 300.60466529463883 96.76165622891858)</data>
+      <data key="d5">334.95457531511784</data>
+      <data key="d6">100.99315629107878</data>
+      <data key="d7">300.60466529463883</data>
+      <data key="d8">96.76165622891858</data>
+    </node>
+    <node id="(6892255224, 6892255221, 0)">
+      <data key="d0">736170285</data>
+      <data key="d1">service</data>
+      <data key="d2">True</data>
+      <data key="d3">False</data>
+      <data key="d4">21.06872475085636</data>
+      <data key="d9">LINESTRING (334.95457531511784 100.99315629107878, 338.4557928512804 98.72963762376457, 348.01850507454947 97.7885283222422, 355.26899695326574 98.84484254661947)</data>
+      <data key="d5">334.95457531511784</data>
+      <data key="d6">100.99315629107878</data>
+      <data key="d7">355.26899695326574</data>
+      <data key="d8">98.84484254661947</data>
+    </node>
+    <node id="(6892255231, 6892255224, 0)">
+      <data key="d0">736170284</data>
+      <data key="d1">service</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">36.82937401276155</data>
+      <data key="d9">LINESTRING (300.60466529463883 96.76165622891858, 313.3624103659531 94.09774414123967, 318.3150833323598 92.83547845901921, 321.81654211797286 93.34580410923809, 326.3165710957255 95.92935052560642, 334.95457531511784 100.99315629107878)</data>
+      <data key="d5">300.60466529463883</data>
+      <data key="d6">96.76165622891858</data>
+      <data key="d7">334.95457531511784</data>
+      <data key="d8">100.99315629107878</data>
+    </node>
+    <edge source="(7094910080, 65447934, 0)" target="(65447934, 7953669658, 0)" id="0" />
+    <edge source="(7094910080, 65447934, 0)" target="(65447934, 7094910080, 0)" id="0" />
+    <edge source="(7094910080, 65447934, 0)" target="(65447934, 65447932, 0)" id="0" />
+    <edge source="(65447934, 7953669658, 0)" target="(7953669658, 65447934, 0)" id="0" />
+    <edge source="(65447934, 7953669658, 0)" target="(7953669658, 7953669659, 0)" id="0" />
+    <edge source="(65447934, 7953669658, 0)" target="(7953669658, 7330712191, 0)" id="0" />
+    <edge source="(65447934, 7094910080, 0)" target="(7094910080, 65447934, 0)" id="0" />
+    <edge source="(65447934, 7094910080, 0)" target="(7094910080, 65556422, 0)" id="0" />
+    <edge source="(65447934, 7094910080, 0)" target="(7094910080, 7094910082, 0)" id="0" />
+    <edge source="(65447934, 65447932, 0)" target="(65447932, 5862300244, 0)" id="0" />
+    <edge source="(65447934, 65447932, 0)" target="(65447932, 65516967, 0)" id="0" />
+    <edge source="(65447934, 65447932, 0)" target="(65447932, 65447934, 0)" id="0" />
+    <edge source="(65447934, 65447932, 0)" target="(65447932, 6575329083, 0)" id="0" />
+    <edge source="(7094910080, 65556422, 0)" target="(65556422, 65556425, 0)" id="0" />
+    <edge source="(7094910080, 65556422, 0)" target="(65556422, 7094910080, 0)" id="0" />
+    <edge source="(7094910080, 65556422, 0)" target="(65556422, 65556420, 0)" id="0" />
+    <edge source="(65556422, 65556425, 0)" target="(65556425, 65556422, 0)" id="0" />
+    <edge source="(65556422, 65556425, 0)" target="(65556425, 65556428, 0)" id="0" />
+    <edge source="(65556422, 65556425, 0)" target="(65556425, 65566145, 0)" id="0" />
+    <edge source="(65556422, 7094910080, 0)" target="(7094910080, 65447934, 0)" id="0" />
+    <edge source="(65556422, 7094910080, 0)" target="(7094910080, 65556422, 0)" id="0" />
+    <edge source="(65556422, 7094910080, 0)" target="(7094910080, 7094910082, 0)" id="0" />
+    <edge source="(65556422, 65556420, 0)" target="(65556420, 65556422, 0)" id="0" />
+    <edge source="(65556422, 65556420, 0)" target="(65556420, 65506035, 0)" id="0" />
+    <edge source="(65556422, 65556420, 0)" target="(65556420, 65516967, 0)" id="0" />
+    <edge source="(65556422, 65556420, 0)" target="(65556420, 65556419, 0)" id="0" />
+    <edge source="(7094910080, 7094910082, 0)" target="(7094910082, 7094910080, 0)" id="0" />
+    <edge source="(7094910082, 7094910080, 0)" target="(7094910080, 65447934, 0)" id="0" />
+    <edge source="(7094910082, 7094910080, 0)" target="(7094910080, 65556422, 0)" id="0" />
+    <edge source="(7094910082, 7094910080, 0)" target="(7094910080, 7094910082, 0)" id="0" />
+    <edge source="(2299047944, 65556434, 0)" target="(65556434, 65556432, 0)" id="0" />
+    <edge source="(2299047944, 65556434, 0)" target="(65556434, 7933429519, 0)" id="0" />
+    <edge source="(2299047944, 65556434, 0)" target="(65556434, 2299047944, 0)" id="0" />
+    <edge source="(65556434, 65556432, 0)" target="(65556432, 65556434, 0)" id="0" />
+    <edge source="(65556434, 65556432, 0)" target="(65556432, 65556428, 0)" id="0" />
+    <edge source="(65556434, 65556432, 0)" target="(65556432, 345502476, 0)" id="0" />
+    <edge source="(65556434, 7933429519, 0)" target="(7933429519, 8416939964, 0)" id="0" />
+    <edge source="(65556434, 7933429519, 0)" target="(7933429519, 65556434, 0)" id="0" />
+    <edge source="(65556434, 7933429519, 0)" target="(7933429519, 7933429523, 0)" id="0" />
+    <edge source="(65556434, 2299047944, 0)" target="(2299047944, 65556434, 0)" id="0" />
+    <edge source="(345502476, 65556432, 0)" target="(65556432, 65556434, 0)" id="0" />
+    <edge source="(345502476, 65556432, 0)" target="(65556432, 65556428, 0)" id="0" />
+    <edge source="(345502476, 65556432, 0)" target="(65556432, 345502476, 0)" id="0" />
+    <edge source="(65556432, 65556434, 0)" target="(65556434, 65556432, 0)" id="0" />
+    <edge source="(65556432, 65556434, 0)" target="(65556434, 7933429519, 0)" id="0" />
+    <edge source="(65556432, 65556434, 0)" target="(65556434, 2299047944, 0)" id="0" />
+    <edge source="(65556432, 65556428, 0)" target="(65556428, 65556432, 0)" id="0" />
+    <edge source="(65556432, 65556428, 0)" target="(65556428, 65556425, 0)" id="0" />
+    <edge source="(65556432, 65556428, 0)" target="(65556428, 65601088, 0)" id="0" />
+    <edge source="(65556432, 65556428, 0)" target="(65556428, 344595690, 0)" id="0" />
+    <edge source="(65556432, 345502476, 0)" target="(345502476, 65556432, 0)" id="0" />
+    <edge source="(8484526477, 344595690, 2)" target="(344595690, 5362481496, 2)" id="0" />
+    <edge source="(8484526477, 344595690, 2)" target="(344595690, 8484526477, 2)" id="0" />
+    <edge source="(8484526477, 344595690, 2)" target="(344595690, 65556428, 0)" id="0" />
+    <edge source="(344595690, 5362481496, 2)" target="(5362481496, 5362481510, 0)" id="0" />
+    <edge source="(344595690, 5362481496, 2)" target="(5362481496, 344595690, 2)" id="0" />
+    <edge source="(344595690, 8484526477, 2)" target="(8484526477, 344595690, 2)" id="0" />
+    <edge source="(344595690, 8484526477, 2)" target="(8484526477, 6472983673, 2)" id="0" />
+    <edge source="(344595690, 8484526477, 2)" target="(8484526477, 8484526479, 0)" id="0" />
+    <edge source="(344595690, 65556428, 0)" target="(65556428, 65556432, 0)" id="0" />
+    <edge source="(344595690, 65556428, 0)" target="(65556428, 65556425, 0)" id="0" />
+    <edge source="(344595690, 65556428, 0)" target="(65556428, 65601088, 0)" id="0" />
+    <edge source="(344595690, 65556428, 0)" target="(65556428, 344595690, 0)" id="0" />
+    <edge source="(8484526477, 6472983673, 2)" target="(6472983673, 8484526477, 2)" id="0" />
+    <edge source="(8484526477, 6472983673, 2)" target="(6472983673, 13256702100, 2)" id="0" />
+    <edge source="(6472983673, 8484526477, 2)" target="(8484526477, 344595690, 2)" id="0" />
+    <edge source="(6472983673, 8484526477, 2)" target="(8484526477, 6472983673, 2)" id="0" />
+    <edge source="(6472983673, 8484526477, 2)" target="(8484526477, 8484526479, 0)" id="0" />
+    <edge source="(6472983673, 13256702100, 2)" target="(13256702100, 6472983673, 2)" id="0" />
+    <edge source="(8484526477, 8484526479, 0)" target="(8484526479, 8484526477, 0)" id="0" />
+    <edge source="(8484526479, 8484526477, 0)" target="(8484526477, 344595690, 2)" id="0" />
+    <edge source="(8484526479, 8484526477, 0)" target="(8484526477, 6472983673, 2)" id="0" />
+    <edge source="(8484526479, 8484526477, 0)" target="(8484526477, 8484526479, 0)" id="0" />
+    <edge source="(7933429519, 8416939964, 0)" target="(8416939964, 7933429519, 0)" id="0" />
+    <edge source="(7933429519, 8416939964, 0)" target="(8416939964, 12996275655, 0)" id="0" />
+    <edge source="(7933429519, 8416939964, 0)" target="(8416939964, 8416939968, 0)" id="0" />
+    <edge source="(8416939964, 7933429519, 0)" target="(7933429519, 8416939964, 0)" id="0" />
+    <edge source="(8416939964, 7933429519, 0)" target="(7933429519, 65556434, 0)" id="0" />
+    <edge source="(8416939964, 7933429519, 0)" target="(7933429519, 7933429523, 0)" id="0" />
+    <edge source="(8416939964, 12996275655, 0)" target="(12996275655, 8416939964, 0)" id="0" />
+    <edge source="(8416939964, 8416939968, 0)" target="(8416939968, 8416939964, 0)" id="0" />
+    <edge source="(7933429519, 65556434, 0)" target="(65556434, 65556432, 0)" id="0" />
+    <edge source="(7933429519, 65556434, 0)" target="(65556434, 7933429519, 0)" id="0" />
+    <edge source="(7933429519, 65556434, 0)" target="(65556434, 2299047944, 0)" id="0" />
+    <edge source="(7933429519, 7933429523, 0)" target="(7933429523, 7933429519, 0)" id="0" />
+    <edge source="(7933429523, 7933429519, 0)" target="(7933429519, 8416939964, 0)" id="0" />
+    <edge source="(7933429523, 7933429519, 0)" target="(7933429519, 65556434, 0)" id="0" />
+    <edge source="(7933429523, 7933429519, 0)" target="(7933429519, 7933429523, 0)" id="0" />
+    <edge source="(6473064211, 7023278577, 0)" target="(7023278577, 6473064211, 0)" id="0" />
+    <edge source="(7023278577, 6473064211, 0)" target="(6473064211, 7023278577, 0)" id="0" />
+    <edge source="(13256702100, 6472983673, 2)" target="(6472983673, 8484526477, 2)" id="0" />
+    <edge source="(13256702100, 6472983673, 2)" target="(6472983673, 13256702100, 2)" id="0" />
+    <edge source="(7953669658, 65447934, 0)" target="(65447934, 7953669658, 0)" id="0" />
+    <edge source="(7953669658, 65447934, 0)" target="(65447934, 7094910080, 0)" id="0" />
+    <edge source="(7953669658, 65447934, 0)" target="(65447934, 65447932, 0)" id="0" />
+    <edge source="(7953669658, 7953669659, 0)" target="(7953669659, 7953669658, 0)" id="0" />
+    <edge source="(7953669659, 7953669658, 0)" target="(7953669658, 65447934, 0)" id="0" />
+    <edge source="(7953669659, 7953669658, 0)" target="(7953669658, 7953669659, 0)" id="0" />
+    <edge source="(7953669659, 7953669658, 0)" target="(7953669658, 7330712191, 0)" id="0" />
+    <edge source="(7953669658, 7330712191, 0)" target="(7330712191, 7953669658, 0)" id="0" />
+    <edge source="(7330712191, 7953669658, 0)" target="(7953669658, 65447934, 0)" id="0" />
+    <edge source="(7330712191, 7953669658, 0)" target="(7953669658, 7953669659, 0)" id="0" />
+    <edge source="(7330712191, 7953669658, 0)" target="(7953669658, 7330712191, 0)" id="0" />
+    <edge source="(65623068, 65563757, 0)" target="(65563757, 7371591110, 0)" id="0" />
+    <edge source="(65623068, 65563757, 0)" target="(65563757, 65623068, 0)" id="0" />
+    <edge source="(65623068, 65563757, 0)" target="(65563757, 65563751, 0)" id="0" />
+    <edge source="(65563757, 7371591110, 0)" target="(7371591110, 65623070, 0)" id="0" />
+    <edge source="(65563757, 7371591110, 0)" target="(7371591110, 65563757, 0)" id="0" />
+    <edge source="(65563757, 7371591110, 0)" target="(7371591110, 7371591112, 0)" id="0" />
+    <edge source="(65563757, 65623068, 0)" target="(65623068, 65563757, 0)" id="0" />
+    <edge source="(65563757, 65623068, 0)" target="(65623068, 65506035, 0)" id="0" />
+    <edge source="(65563757, 65623068, 0)" target="(65623068, 65679352, 0)" id="0" />
+    <edge source="(65563757, 65563751, 0)" target="(65563751, 65563757, 0)" id="0" />
+    <edge source="(65623068, 65506035, 0)" target="(65506035, 65506037, 0)" id="0" />
+    <edge source="(65623068, 65506035, 0)" target="(65506035, 65623068, 0)" id="0" />
+    <edge source="(65623068, 65506035, 0)" target="(65506035, 65556420, 0)" id="0" />
+    <edge source="(65623068, 65506035, 0)" target="(65506035, 65638052, 0)" id="0" />
+    <edge source="(65506035, 65506037, 0)" target="(65506037, 65506035, 0)" id="0" />
+    <edge source="(65506035, 65623068, 0)" target="(65623068, 65563757, 0)" id="0" />
+    <edge source="(65506035, 65623068, 0)" target="(65623068, 65506035, 0)" id="0" />
+    <edge source="(65506035, 65623068, 0)" target="(65623068, 65679352, 0)" id="0" />
+    <edge source="(65506035, 65556420, 0)" target="(65556420, 65556422, 0)" id="0" />
+    <edge source="(65506035, 65556420, 0)" target="(65556420, 65506035, 0)" id="0" />
+    <edge source="(65506035, 65556420, 0)" target="(65556420, 65516967, 0)" id="0" />
+    <edge source="(65506035, 65556420, 0)" target="(65556420, 65556419, 0)" id="0" />
+    <edge source="(65506035, 65638052, 0)" target="(65638052, 65506035, 0)" id="0" />
+    <edge source="(65623068, 65679352, 0)" target="(65679352, 65623068, 0)" id="0" />
+    <edge source="(65679352, 65623068, 0)" target="(65623068, 65563757, 0)" id="0" />
+    <edge source="(65679352, 65623068, 0)" target="(65623068, 65506035, 0)" id="0" />
+    <edge source="(65679352, 65623068, 0)" target="(65623068, 65679352, 0)" id="0" />
+    <edge source="(65623070, 7371591110, 0)" target="(7371591110, 65623070, 0)" id="0" />
+    <edge source="(65623070, 7371591110, 0)" target="(7371591110, 65563757, 0)" id="0" />
+    <edge source="(65623070, 7371591110, 0)" target="(7371591110, 7371591112, 0)" id="0" />
+    <edge source="(7371591110, 65623070, 0)" target="(65623070, 7371591110, 0)" id="0" />
+    <edge source="(7371591110, 65623070, 0)" target="(65623070, 65623073, 0)" id="0" />
+    <edge source="(7371591110, 65623070, 0)" target="(65623070, 65537102, 0)" id="0" />
+    <edge source="(7371591110, 65563757, 0)" target="(65563757, 7371591110, 0)" id="0" />
+    <edge source="(7371591110, 65563757, 0)" target="(65563757, 65623068, 0)" id="0" />
+    <edge source="(7371591110, 65563757, 0)" target="(65563757, 65563751, 0)" id="0" />
+    <edge source="(7371591110, 7371591112, 0)" target="(7371591112, 7371591110, 0)" id="0" />
+    <edge source="(65623070, 65623073, 0)" target="(65623073, 65623070, 0)" id="0" />
+    <edge source="(65623073, 65623070, 0)" target="(65623070, 7371591110, 0)" id="0" />
+    <edge source="(65623073, 65623070, 0)" target="(65623070, 65623073, 0)" id="0" />
+    <edge source="(65623073, 65623070, 0)" target="(65623070, 65537102, 0)" id="0" />
+    <edge source="(65623070, 65537102, 0)" target="(65537102, 65623070, 0)" id="0" />
+    <edge source="(65537102, 65623070, 0)" target="(65623070, 7371591110, 0)" id="0" />
+    <edge source="(65537102, 65623070, 0)" target="(65623070, 65623073, 0)" id="0" />
+    <edge source="(65537102, 65623070, 0)" target="(65623070, 65537102, 0)" id="0" />
+    <edge source="(65638052, 65506035, 0)" target="(65506035, 65506037, 0)" id="0" />
+    <edge source="(65638052, 65506035, 0)" target="(65506035, 65623068, 0)" id="0" />
+    <edge source="(65638052, 65506035, 0)" target="(65506035, 65556420, 0)" id="0" />
+    <edge source="(65638052, 65506035, 0)" target="(65506035, 65638052, 0)" id="0" />
+    <edge source="(65516966, 65516967, 0)" target="(65516967, 65516966, 0)" id="0" />
+    <edge source="(65516966, 65516967, 0)" target="(65516967, 65447932, 0)" id="0" />
+    <edge source="(65516966, 65516967, 0)" target="(65516967, 65556420, 0)" id="0" />
+    <edge source="(65516967, 65516966, 0)" target="(65516966, 65516967, 0)" id="0" />
+    <edge source="(65516967, 65447932, 0)" target="(65447932, 5862300244, 0)" id="0" />
+    <edge source="(65516967, 65447932, 0)" target="(65447932, 65516967, 0)" id="0" />
+    <edge source="(65516967, 65447932, 0)" target="(65447932, 65447934, 0)" id="0" />
+    <edge source="(65516967, 65447932, 0)" target="(65447932, 6575329083, 0)" id="0" />
+    <edge source="(65516967, 65556420, 0)" target="(65556420, 65556422, 0)" id="0" />
+    <edge source="(65516967, 65556420, 0)" target="(65556420, 65506035, 0)" id="0" />
+    <edge source="(65516967, 65556420, 0)" target="(65556420, 65516967, 0)" id="0" />
+    <edge source="(65516967, 65556420, 0)" target="(65556420, 65556419, 0)" id="0" />
+    <edge source="(65447932, 5862300244, 0)" target="(5862300244, 7896981076, 0)" id="0" />
+    <edge source="(65447932, 5862300244, 0)" target="(5862300244, 65447932, 0)" id="0" />
+    <edge source="(65447932, 5862300244, 0)" target="(5862300244, 5362481500, 0)" id="0" />
+    <edge source="(65447932, 65516967, 0)" target="(65516967, 65516966, 0)" id="0" />
+    <edge source="(65447932, 65516967, 0)" target="(65516967, 65447932, 0)" id="0" />
+    <edge source="(65447932, 65516967, 0)" target="(65516967, 65556420, 0)" id="0" />
+    <edge source="(65447932, 65447934, 0)" target="(65447934, 7953669658, 0)" id="0" />
+    <edge source="(65447932, 65447934, 0)" target="(65447934, 7094910080, 0)" id="0" />
+    <edge source="(65447932, 65447934, 0)" target="(65447934, 65447932, 0)" id="0" />
+    <edge source="(65447932, 6575329083, 0)" target="(6575329083, 65447932, 0)" id="0" />
+    <edge source="(65556420, 65556422, 0)" target="(65556422, 65556425, 0)" id="0" />
+    <edge source="(65556420, 65556422, 0)" target="(65556422, 7094910080, 0)" id="0" />
+    <edge source="(65556420, 65556422, 0)" target="(65556422, 65556420, 0)" id="0" />
+    <edge source="(65556420, 65506035, 0)" target="(65506035, 65506037, 0)" id="0" />
+    <edge source="(65556420, 65506035, 0)" target="(65506035, 65623068, 0)" id="0" />
+    <edge source="(65556420, 65506035, 0)" target="(65506035, 65556420, 0)" id="0" />
+    <edge source="(65556420, 65506035, 0)" target="(65506035, 65638052, 0)" id="0" />
+    <edge source="(65556420, 65516967, 0)" target="(65516967, 65516966, 0)" id="0" />
+    <edge source="(65556420, 65516967, 0)" target="(65516967, 65447932, 0)" id="0" />
+    <edge source="(65556420, 65516967, 0)" target="(65516967, 65556420, 0)" id="0" />
+    <edge source="(65556420, 65556419, 0)" target="(65556419, 65556420, 0)" id="0" />
+    <edge source="(6575329083, 65447932, 0)" target="(65447932, 5862300244, 0)" id="0" />
+    <edge source="(6575329083, 65447932, 0)" target="(65447932, 65516967, 0)" id="0" />
+    <edge source="(6575329083, 65447932, 0)" target="(65447932, 65447934, 0)" id="0" />
+    <edge source="(6575329083, 65447932, 0)" target="(65447932, 6575329083, 0)" id="0" />
+    <edge source="(12996275655, 8416939964, 0)" target="(8416939964, 7933429519, 0)" id="0" />
+    <edge source="(12996275655, 8416939964, 0)" target="(8416939964, 12996275655, 0)" id="0" />
+    <edge source="(12996275655, 8416939964, 0)" target="(8416939964, 8416939968, 0)" id="0" />
+    <edge source="(8416939968, 8416939964, 0)" target="(8416939964, 7933429519, 0)" id="0" />
+    <edge source="(8416939968, 8416939964, 0)" target="(8416939964, 12996275655, 0)" id="0" />
+    <edge source="(8416939968, 8416939964, 0)" target="(8416939964, 8416939968, 0)" id="0" />
+    <edge source="(65601088, 65556428, 0)" target="(65556428, 65556432, 0)" id="0" />
+    <edge source="(65601088, 65556428, 0)" target="(65556428, 65556425, 0)" id="0" />
+    <edge source="(65601088, 65556428, 0)" target="(65556428, 65601088, 0)" id="0" />
+    <edge source="(65601088, 65556428, 0)" target="(65556428, 344595690, 0)" id="0" />
+    <edge source="(65556428, 65556432, 0)" target="(65556432, 65556434, 0)" id="0" />
+    <edge source="(65556428, 65556432, 0)" target="(65556432, 65556428, 0)" id="0" />
+    <edge source="(65556428, 65556432, 0)" target="(65556432, 345502476, 0)" id="0" />
+    <edge source="(65556428, 65556425, 0)" target="(65556425, 65556422, 0)" id="0" />
+    <edge source="(65556428, 65556425, 0)" target="(65556425, 65556428, 0)" id="0" />
+    <edge source="(65556428, 65556425, 0)" target="(65556425, 65566145, 0)" id="0" />
+    <edge source="(65556428, 65601088, 0)" target="(65601088, 65556428, 0)" id="0" />
+    <edge source="(65556428, 344595690, 0)" target="(344595690, 5362481496, 2)" id="0" />
+    <edge source="(65556428, 344595690, 0)" target="(344595690, 8484526477, 2)" id="0" />
+    <edge source="(65556428, 344595690, 0)" target="(344595690, 65556428, 0)" id="0" />
+    <edge source="(65566145, 65556425, 0)" target="(65556425, 65556422, 0)" id="0" />
+    <edge source="(65566145, 65556425, 0)" target="(65556425, 65556428, 0)" id="0" />
+    <edge source="(65566145, 65556425, 0)" target="(65556425, 65566145, 0)" id="0" />
+    <edge source="(65556425, 65556422, 0)" target="(65556422, 65556425, 0)" id="0" />
+    <edge source="(65556425, 65556422, 0)" target="(65556422, 7094910080, 0)" id="0" />
+    <edge source="(65556425, 65556422, 0)" target="(65556422, 65556420, 0)" id="0" />
+    <edge source="(65556425, 65556428, 0)" target="(65556428, 65556432, 0)" id="0" />
+    <edge source="(65556425, 65556428, 0)" target="(65556428, 65556425, 0)" id="0" />
+    <edge source="(65556425, 65556428, 0)" target="(65556428, 65601088, 0)" id="0" />
+    <edge source="(65556425, 65556428, 0)" target="(65556428, 344595690, 0)" id="0" />
+    <edge source="(65556425, 65566145, 0)" target="(65566145, 65556425, 0)" id="0" />
+    <edge source="(65556419, 65556420, 0)" target="(65556420, 65556422, 0)" id="0" />
+    <edge source="(65556419, 65556420, 0)" target="(65556420, 65506035, 0)" id="0" />
+    <edge source="(65556419, 65556420, 0)" target="(65556420, 65516967, 0)" id="0" />
+    <edge source="(65556419, 65556420, 0)" target="(65556420, 65556419, 0)" id="0" />
+    <edge source="(7371591112, 7371591110, 0)" target="(7371591110, 65623070, 0)" id="0" />
+    <edge source="(7371591112, 7371591110, 0)" target="(7371591110, 65563757, 0)" id="0" />
+    <edge source="(7371591112, 7371591110, 0)" target="(7371591110, 7371591112, 0)" id="0" />
+    <edge source="(7896981076, 5862300244, 0)" target="(5862300244, 7896981076, 0)" id="0" />
+    <edge source="(7896981076, 5862300244, 0)" target="(5862300244, 65447932, 0)" id="0" />
+    <edge source="(7896981076, 5862300244, 0)" target="(5862300244, 5362481500, 0)" id="0" />
+    <edge source="(5862300244, 7896981076, 0)" target="(7896981076, 5862300244, 0)" id="0" />
+    <edge source="(5862300244, 65447932, 0)" target="(65447932, 5862300244, 0)" id="0" />
+    <edge source="(5862300244, 65447932, 0)" target="(65447932, 65516967, 0)" id="0" />
+    <edge source="(5862300244, 65447932, 0)" target="(65447932, 65447934, 0)" id="0" />
+    <edge source="(5862300244, 65447932, 0)" target="(65447932, 6575329083, 0)" id="0" />
+    <edge source="(5862300244, 5362481500, 0)" target="(5362481500, 5862300244, 0)" id="0" />
+    <edge source="(5362481500, 5862300244, 0)" target="(5862300244, 7896981076, 0)" id="0" />
+    <edge source="(5362481500, 5862300244, 0)" target="(5862300244, 65447932, 0)" id="0" />
+    <edge source="(5362481500, 5862300244, 0)" target="(5862300244, 5362481500, 0)" id="0" />
+    <edge source="(5362481496, 5362481510, 0)" target="(5362481510, 5362481496, 0)" id="0" />
+    <edge source="(5362481496, 5362481510, 0)" target="(5362481510, 5362481509, 2)" id="0" />
+    <edge source="(5362481496, 5362481510, 0)" target="(5362481510, 6892255221, 0)" id="0" />
+    <edge source="(5362481510, 5362481496, 0)" target="(5362481496, 5362481510, 0)" id="0" />
+    <edge source="(5362481510, 5362481496, 0)" target="(5362481496, 344595690, 2)" id="0" />
+    <edge source="(5362481510, 5362481509, 2)" target="(5362481509, 5362481510, 2)" id="0" />
+    <edge source="(5362481510, 6892255221, 0)" target="(6892255221, 5362481510, 0)" id="0" />
+    <edge source="(5362481510, 6892255221, 0)" target="(6892255221, 6892255224, 0)" id="0" />
+    <edge source="(5362481496, 344595690, 2)" target="(344595690, 5362481496, 2)" id="0" />
+    <edge source="(5362481496, 344595690, 2)" target="(344595690, 8484526477, 2)" id="0" />
+    <edge source="(5362481496, 344595690, 2)" target="(344595690, 65556428, 0)" id="0" />
+    <edge source="(272194686, 65588208, 0)" target="(65588208, 272194686, 0)" id="0" />
+    <edge source="(65588208, 272194686, 0)" target="(272194686, 65588208, 0)" id="0" />
+    <edge source="(65658334, 65658346, 0)" target="(65658346, 65658334, 0)" id="0" />
+    <edge source="(65658346, 65658334, 0)" target="(65658334, 65658346, 0)" id="0" />
+    <edge source="(65433314, 5362481511, 0)" target="(5362481511, 65433314, 0)" id="0" />
+    <edge source="(5362481511, 65433314, 0)" target="(65433314, 5362481511, 0)" id="0" />
+    <edge source="(5362481509, 5362481510, 2)" target="(5362481510, 5362481496, 0)" id="0" />
+    <edge source="(5362481509, 5362481510, 2)" target="(5362481510, 5362481509, 2)" id="0" />
+    <edge source="(5362481509, 5362481510, 2)" target="(5362481510, 6892255221, 0)" id="0" />
+    <edge source="(6892255221, 5362481510, 0)" target="(5362481510, 5362481496, 0)" id="0" />
+    <edge source="(6892255221, 5362481510, 0)" target="(5362481510, 5362481509, 2)" id="0" />
+    <edge source="(6892255221, 5362481510, 0)" target="(5362481510, 6892255221, 0)" id="0" />
+    <edge source="(6892255221, 6892255224, 0)" target="(6892255224, 6892255231, 0)" id="0" />
+    <edge source="(6892255221, 6892255224, 0)" target="(6892255224, 6892255221, 0)" id="0" />
+    <edge source="(65563751, 65563757, 0)" target="(65563757, 7371591110, 0)" id="0" />
+    <edge source="(65563751, 65563757, 0)" target="(65563757, 65623068, 0)" id="0" />
+    <edge source="(65563751, 65563757, 0)" target="(65563757, 65563751, 0)" id="0" />
+    <edge source="(65506037, 65506035, 0)" target="(65506035, 65506037, 0)" id="0" />
+    <edge source="(65506037, 65506035, 0)" target="(65506035, 65623068, 0)" id="0" />
+    <edge source="(65506037, 65506035, 0)" target="(65506035, 65556420, 0)" id="0" />
+    <edge source="(65506037, 65506035, 0)" target="(65506035, 65638052, 0)" id="0" />
+    <edge source="(6892255224, 6892255231, 0)" target="(6892255231, 6892255224, 0)" id="0" />
+    <edge source="(6892255224, 6892255221, 0)" target="(6892255221, 5362481510, 0)" id="0" />
+    <edge source="(6892255224, 6892255221, 0)" target="(6892255221, 6892255224, 0)" id="0" />
+    <edge source="(6892255231, 6892255224, 0)" target="(6892255224, 6892255231, 0)" id="0" />
+    <edge source="(6892255231, 6892255224, 0)" target="(6892255224, 6892255221, 0)" id="0" />
+  </graph>
+</graphml>

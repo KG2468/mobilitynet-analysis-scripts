@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d9" for="node" attr.name="end_y" attr.type="string" />
+  <key id="d8" for="node" attr.name="end_x" attr.type="string" />
+  <key id="d7" for="node" attr.name="start_y" attr.type="string" />
+  <key id="d6" for="node" attr.name="start_x" attr.type="string" />
+  <key id="d5" for="node" attr.name="geometry" attr.type="string" />
+  <key id="d4" for="node" attr.name="length" attr.type="string" />
+  <key id="d3" for="node" attr.name="reversed" attr.type="string" />
+  <key id="d2" for="node" attr.name="oneway" attr.type="string" />
+  <key id="d1" for="node" attr.name="highway" attr.type="string" />
+  <key id="d0" for="node" attr.name="osmid" attr.type="string" />
+  <graph edgedefault="directed">
+    <node id="(13514905000, 100656593, 0)">
+      <data key="d0">109023441</data>
+      <data key="d1">footway</data>
+      <data key="d2">False</data>
+      <data key="d3">False</data>
+      <data key="d4">450.0883422005539</data>
+      <data key="d5">LINESTRING (725.4096551168477 132.36461694398895, 645.1309484944213 285.24842525226995, 640.7217142991722 295.8375363233499, 638.1714051766321 307.4597967104055, 637.63350791228 318.2077933452092, 638.5543976625195 327.955794505775, 641.7822917900048 344.1434482499026, 656.8139952436322 391.79886512318626, 677.2504855464213 452.48314654501155, 705.0482161132386 550.8747478276491)</data>
+      <data key="d6">725.4096551168477</data>
+      <data key="d7">132.36461694398895</data>
+      <data key="d8">705.0482161132386</data>
+      <data key="d9">550.8747478276491</data>
+    </node>
+    <node id="(100656593, 13514905000, 0)">
+      <data key="d0">109023441</data>
+      <data key="d1">footway</data>
+      <data key="d2">False</data>
+      <data key="d3">True</data>
+      <data key="d4">450.0883422005538</data>
+      <data key="d5">LINESTRING (705.0482161132386 550.8747478276491, 677.2504855464213 452.48314654501155, 656.8139952436322 391.79886512318626, 641.7822917900048 344.1434482499026, 638.5543976625195 327.955794505775, 637.63350791228 318.2077933452092, 638.1714051766321 307.4597967104055, 640.7217142991722 295.8375363233499, 645.1309484944213 285.24842525226995, 725.4096551168477 132.36461694398895)</data>
+      <data key="d6">705.0482161132386</data>
+      <data key="d7">550.8747478276491</data>
+      <data key="d8">725.4096551168477</data>
+      <data key="d9">132.36461694398895</data>
+    </node>
+    <edge source="(13514905000, 100656593, 0)" target="(100656593, 13514905000, 0)" id="0" />
+    <edge source="(100656593, 13514905000, 0)" target="(13514905000, 100656593, 0)" id="0" />
+  </graph>
+</graphml>
